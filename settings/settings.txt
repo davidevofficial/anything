@@ -1,9 +1,7 @@
 columns:[50, 250, 50, 50, 50]
 sort_in_use:DateCreatedAscending
 index_on_startup:true
-index_every_seconds:0
-write_cache_every_seconds:0
-write_cache_on_quit:true
+index_every_minutes:60
 instant_search:true
 journal:false
 ignore_case:true
