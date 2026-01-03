@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 chrono = "0.4.42"
 eframe = "0.32.3"
+egui_extras = "0.32.3"
