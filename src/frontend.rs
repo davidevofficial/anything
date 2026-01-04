@@ -111,6 +111,8 @@ impl Anything{
             .column(Column::initial(self.settings.columns[3] as f32).resizable(true))
             .column(Column::initial(self.settings.columns[4] as f32).resizable(true))
             .striped(true)
+            .animate_scrolling(false)
+            .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
             .drag_to_scroll(true)
             .header(24.0, |mut header| {
                 header.col(|ui| {
@@ -210,20 +212,123 @@ impl Anything{
 
 
 }
-fn convert_string_to_predicates(searching_for: String)->Vec<String>{
-    vec![searching_for]
+/// Vec< negation, starts_with, ends_with
+fn convert_string_to_predicates(searching_for: String)->Vec<(bool,bool,bool,String)>{
+    let mut output = Vec::new();
+    if searching_for.contains("\\"){
+        let parts: Vec<&str> = searching_for.split("\\").collect();
+        for p in parts{
+            let mut negation = false;
+            let mut starts_with = false;
+            let mut ends_with = false;
+            let mut string = String::new();
+
+            if !p.is_empty(){
+                if p.starts_with("!"){
+                    negation = true;
+                    if p.starts_with("!_*"){
+                        starts_with = true;
+                    } else if p.starts_with("!*_"){
+                        ends_with = true;
+                    }
+                }
+                if p.starts_with("_*"){
+                    starts_with = true;
+                } else if p.starts_with("*_"){
+                    ends_with = true;
+                }
+                if p.starts_with(" "){}
+                if negation && (starts_with || ends_with){
+                    string = p[3..].to_string();
+                }else if !negation && (starts_with || ends_with){
+                    string = p[2..].to_string();
+                }else{
+                    string = p[1..].to_string();
+                }
+                output.push((negation,starts_with,ends_with,string));
+            }
+        }
+        output
+    }else{
+        vec![(false,false,false,searching_for)]
+    }
 }
 fn search(items: Vec<main::File>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<main::File>{
     let mut output: Vec<main::File> = Vec::new();
     let pred = convert_string_to_predicates(searching_for.clone());
-    for p in pred{
-        match cancel_flag.try_recv(){
-                Ok(1) => {return output},
-                _ => {}
-        }
-        if output.len() == 0{
+    dbg!(&pred);
+    for i in 0..pred.len(){
+        if i == 0{
+            //Initial pred build all the results
+            let p = pred[i].clone();
             for item in 0..items.len(){
+                match cancel_flag.try_recv(){
+                    Ok(1) => {return output;}
+                    _=>{}
+                }
                 let f: main::File = items[item].clone();
+                let mut n = String::new();
+                let mut m = p.3.clone();
+                if settings.search_full_path {
+                    n = f.full_name.clone();
+                }else{
+                    n = f.name.clone();
+                }
+                if settings.ignore_case{
+                    n = n.to_lowercase();
+                    m = m.to_lowercase();
+                }
+                // Negate
+                if p.0{
+                    // Not Starts With
+                    if p.1{
+                        if !n.starts_with(&m){
+                            output.push(f);
+                        }
+                    }
+                    // Not Ends With
+                    else if p.2{
+                        if !n.ends_with(&m){
+                            output.push(f);
+                        }
+                    }
+                    // Not contains
+                    else{
+                        if !n.contains(&m){
+                            output.push(f);
+                        }
+                    }
+                // Normal
+                }else{
+                    // Starts With
+                    if p.1{
+                        if n.starts_with(&m){
+                            output.push(f);
+                        }
+                    }
+                    // Ends With
+                    else if p.2{
+                        if n.ends_with(&m){
+                            output.push(f);
+                        }
+                    }
+                    // contains
+                    else{
+                        if n.contains(&m){
+                            output.push(f);
+                        }
+                    }
+                }
+            }
+        } else {
+            //Later predicates only use from the previous results
+            let p = pred[i].clone();
+            for o in 0..output.len(){
+                match cancel_flag.try_recv(){
+                    Ok(1) => {return output;}
+                    _=>{}
+                }
+                let f: main::File = output[o].clone();
                 let mut n = String::new();
                 let mut m = searching_for.clone();
                 if settings.search_full_path {
@@ -235,26 +340,48 @@ fn search(items: Vec<main::File>, settings: main::Settings, searching_for: Strin
                     n = n.to_lowercase();
                     m = m.to_lowercase();
                 }
-                if n.contains(&m){
-                    output.push(f);
+                // Negate
+                if p.0{
+                    // Not Starts With
+                    if p.1{
+                        if !n.starts_with(&m){
+                            output.push(f);
+                        }
+                    }
+                    // Not Ends With
+                    else if p.2{
+                        if !n.ends_with(&m){
+                            output.push(f);
+                        }
+                    }
+                    // Not contains
+                    else{
+                        if !n.contains(&m){
+                            output.push(f);
+                        }
+                    }
+                // Normal
+                }else{
+                    // Starts With
+                    if p.1{
+                        if n.starts_with(&m){
+                            output.push(f);
+                        }
+                    }
+                    // Ends With
+                    else if p.2{
+                        if n.ends_with(&m){
+                            output.push(f);
+                        }
+                    }
+                    // contains
+                    else{
+                        if n.contains(&m){
+                            output.push(f);
+                        }
+                    }
                 }
-            }
-        }
-        else{
-            for f in 0..output.len(){
-                let f: main::File = items[f].clone();
-                let mut n = String::new();
-                let mut m = searching_for.clone();
-                if settings.search_full_path {
-                    n = f.full_name.clone();
-                }
-                if settings.ignore_case{
-                    n = n.to_lowercase();
-                    m = m.to_lowercase();
-                }
-                if n == m{
-                    output.push(f);
-                }
+
             }
         }
     }
