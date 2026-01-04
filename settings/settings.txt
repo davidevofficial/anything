@@ -1,4 +1,4 @@
-columns:[200, 950, 70, 150, 150]
+columns:[200, 950, 100, 150, 150]
 sort_in_use:SizeAscending
 index_on_startup:true
 index_every_minutes:60
