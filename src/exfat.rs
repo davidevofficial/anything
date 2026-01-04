@@ -17,7 +17,7 @@ fn to_epoch(year: i32, month: u32, day: u32, hour: u32, minute: u32, second: u32
 
 const QUARTER: i32 = 900;
 fn bytes_to_time(b1: u8, b2: u8, b3: u8, b4: u8, b_ms: u8, b_tz: u8)->i64{
-    let mut year = 0;
+    let mut year = 1980;
     let mut month = 0;
     let mut day = 0;
     let mut hour = 0;
@@ -26,8 +26,39 @@ fn bytes_to_time(b1: u8, b2: u8, b3: u8, b4: u8, b_ms: u8, b_tz: u8)->i64{
     let mut ms = 0;
     let mut offset_secs = 0;
 
+    second += (b1 & 0b00011111)*2;
+    minute += (b1 & 0b11100000)>>5;
+    minute += (b2 & 0b00000111)<<3;
+    hour += (b2 & 0b11111000)>>3;
 
-    0
+    day += b3 & 0b00011111;
+    month += (b3 & 0b11100000)>>5;
+    month += (b4 & 0b00000001)*8;
+    year += ((b4 & 0b11111110)>>1) as u32;
+
+    ms = 10* (u8::from_le(b_ms) as u32);
+    if ms > 999{
+        ms -= 1000;
+        second += 1;
+    }
+
+    let tz = b_tz & 0b10000000;
+    if tz != 0{
+        let s = b_tz &0b01000000;
+        if s == 0{
+            offset_secs += 900 * (b_tz & 0b00111111) as i32;
+        }else{
+            offset_secs = -900*64;
+            offset_secs += 900 * (b_tz & 0b00111111) as i32;
+        }
+    }
+
+    to_epoch(
+        year as i32, month as u32, day as u32,
+        hour as u32, minute as u32, second as u32,
+        ms as u32, offset_secs
+    )
+
     // to_epoch(year, month, day, hour, minute, second, ms, offset_secs)
 
 
