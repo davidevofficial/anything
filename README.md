@@ -1,8 +1,12 @@
 # Anything
 Simple program made in rust with a GUI to find **any** file/directory in a list of drives.
-<img width="1603" height="725" alt="image" src="https://github.com/user-attachments/assets/679978fe-26a0-4deb-9e76-c1c3a1b3111e" />
-<img width="1606" height="733" alt="image" src="https://github.com/user-attachments/assets/1339f0c0-aa26-4139-af43-475d35495cdc" />
+
 [Installation](https://github.com/davidevofficial/anything#Installation "installation")
+
+<img width="1603" height="725" alt="image" src="https://github.com/user-attachments/assets/679978fe-26a0-4deb-9e76-c1c3a1b3111e" />
+
+<img width="1606" height="733" alt="image" src="https://github.com/user-attachments/assets/1339f0c0-aa26-4139-af43-475d35495cdc" />
+
 
 
 Supports:
@@ -34,10 +38,9 @@ rustup default stable
 sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
 sudo apt-get install libatk1.0-dev libgdk-pixbuf2.0-dev
 sudo apt-get install libgtk-3-dev
-cargo build --profile finalrelease (or debug if you want debug)
-(Copy settings folder to the same directory)
+cargo build --release (or debug if you want debug)
 
-Final File structure should look like this:
+Final File structure (after running for the first time) should look like this:
 ./
 ├── Anything
 └── settings/
@@ -51,7 +54,9 @@ In the future I'll support other means for distributing the binary such as Flatp
 
 # How to use
 
-The main interface should be familiar to you if you come from windows.
+run with [sudo](https://github.com/davidevofficial/anything?tab=readme-ov-file#limitations "See limitation:") for indexing and if indexing is not necessary you can drop priviliges.
+
+The main interface should be familiar to you if you come from windows (everything).
 
 The bottom bar is a status bar, it tells you how many files it has found or if it is searching/indexing
 

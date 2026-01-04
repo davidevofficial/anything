@@ -146,25 +146,50 @@ pub fn lines_from_bytes(mut data: Vec<u8>) -> Vec<Vec<u8>> {
 }
 
 fn main()  {
-
-    // assert_eq!(timestamp_to_string(910390), String::from("01/01/1970 00:15:10"));
-    // let mut files = exfat::index(String::from("/dev/sdc1"), String::from("/media/1"), vec![
-    //     // String::from("/media/1/music"),
-    //     // String::from("/media/1/.Trash-1000"),
-    //     // String::from("/media/1/data"),
-    // ]);
-
-    // //sort ascending
-    // files.sort_by(|a,b| a.size.cmp(&b.size));
-    // //sort descending
-    // files.sort_by(|b,a| a.size.cmp(&b.size));
+    // If it is an appimage and settings doesn't exist then write the folder
+    if env::var("APPIMAGE").is_ok() && env::var("APPIMAGE").unwrap() != String::new(){
+        let appimage_path = env::var("APPIMAGE").unwrap();
+        let appimage_path = Path::new(&appimage_path);
+        let settings_dir = appimage_path.join("settings");
+        if !settings_dir.exists(){
+            let _ =std::fs::create_dir_all(&settings_dir);
+            let mut file = std::fs::File::create(&settings_dir.join("settings.txt")).unwrap();
+            let _ = file.write_all("columns:[200, 950, 100, 150, 150]\nsort_in_use:SizeAscending\nindex_on_startup:true\nindex_every_minutes:60\ninstant_search:true\njournal:false\nignore_case:true\nsearch_full_path:true".as_bytes());
+            let _ =std::fs::File::create(&settings_dir.join("drives.txt"));
+            let _ =std::fs::File::create(&settings_dir.join("cache.txt"));
+        }
+    }else{
+        if !Path::new(SAVE_SETTINGS_PATH).exists(){
+            let _ =std::fs::create_dir_all("./settings");
+            let mut file = std::fs::File::create(SAVE_SETTINGS_PATH).unwrap();
+            let _ = file.write_all("columns:[200, 950, 100, 150, 150]\nsort_in_use:SizeAscending\nindex_on_startup:true\nindex_every_minutes:60\ninstant_search:true\njournal:false\nignore_case:true\nsearch_full_path:true".as_bytes());
+            let _ =std::fs::File::create(SAVE_DRIVES_PATH);
+            let _ =std::fs::File::create(SAVE_CACHE_PATH);
+        }
+    };
 
     let _ = frontend::start_frontend();
 }
 
 use std::io::{BufRead, BufWriter, Write};
+use std::env;
+use std::path::Path;
 pub fn save_drives(drives: Vec<Drive>){
-    let file = std::fs::OpenOptions::new().write(true).truncate(true).open(SAVE_DRIVES_PATH).expect("NO {SAVE_DRIVES_PATH} found");
+    let file = match std::fs::OpenOptions::new().write(true).truncate(true).open(SAVE_DRIVES_PATH){
+        Ok(a) => {a},
+        Err(_) =>{
+            // If it is an appimage
+            let appimage_path = env::var("APPIMAGE")
+                    .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
+            let appimage_path = Path::new(&appimage_path);
+            let app_dir = appimage_path.parent().unwrap();
+            let settings_dir = app_dir.join("settings");
+            let path = settings_dir.join("drives.txt");
+            dbg!(&path);
+            std::fs::OpenOptions::new().write(true).truncate(true).open(path).unwrap()
+        }
+    };
+
     let mut writer = BufWriter::new(file);
     // Write new lines, overwriting everything
     for drive in drives{
@@ -185,7 +210,21 @@ pub fn save_drives(drives: Vec<Drive>){
 }
 pub fn load_drives() -> Vec<Drive>{
     let mut output = Vec::new();
-    let file = std::fs::File::open(SAVE_DRIVES_PATH).expect("NO {SAVE_DRIVES_PATH} found");
+
+    let file = match std::fs::File::open(SAVE_DRIVES_PATH){
+        Ok(a) => {a},
+        Err(_) =>{
+            // If it is an appimage
+            let appimage_path = env::var("APPIMAGE")
+                    .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
+            let appimage_path = Path::new(&appimage_path);
+            let app_dir = appimage_path.parent().unwrap();
+            let settings_dir = app_dir.join("settings");
+            let path = settings_dir.join("drives.txt");
+            std::fs::File::open(path).unwrap()
+        }
+    };
+
     let reader = std::io::BufReader::new(file);
     for line in reader.lines(){
         let line = line.unwrap();
@@ -220,7 +259,21 @@ pub fn load_drives() -> Vec<Drive>{
     output
 }
 pub fn save_settings(settings: Settings){
-    let file = std::fs::OpenOptions::new().write(true).truncate(true).open(SAVE_SETTINGS_PATH).expect("NO {SAVE_SETTINGS_PATH} found");
+
+    let file = match std::fs::OpenOptions::new().write(true).truncate(true).open(SAVE_SETTINGS_PATH){
+        Ok(a) => {a},
+        Err(_) =>{
+            // If it is an appimage
+            let appimage_path = env::var("APPIMAGE")
+                    .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
+            let appimage_path = Path::new(&appimage_path);
+            let app_dir = appimage_path.parent().unwrap();
+            let settings_dir = app_dir.join("settings");
+            let path = settings_dir.join("settings.txt");
+            std::fs::OpenOptions::new().write(true).truncate(true).open(path).unwrap()
+        }
+    };
+
     let mut writer = BufWriter::new(file);
     // Write new lines, overwriting everything
     for i in 0..10{
@@ -241,7 +294,21 @@ pub fn save_settings(settings: Settings){
     writer.flush().unwrap();
 }
 pub fn load_settings() -> Settings{
-    let file = std::fs::File::open(SAVE_SETTINGS_PATH).expect("NO {SAVE_DRIVES_PATH} found");
+
+    let file = match std::fs::File::open(SAVE_SETTINGS_PATH){
+        Ok(a) => {a},
+        Err(_) =>{
+            // If it is an appimage
+            let appimage_path = env::var("APPIMAGE")
+                    .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
+            let appimage_path = Path::new(&appimage_path);
+            let app_dir = appimage_path.parent().unwrap();
+            let settings_dir = app_dir.join("settings");
+            let path = settings_dir.join("settings.txt");
+            std::fs::File::open(path).unwrap()
+        }
+    };
+
     let reader = std::io::BufReader::new(file);
 
     let mut sort_in_use = Sort::default();
@@ -287,7 +354,19 @@ pub fn load_settings() -> Settings{
     }
 }
 pub fn save_cache(list_of_files: Vec<File>){
-    let file = std::fs::OpenOptions::new().write(true).truncate(true).open(SAVE_CACHE_PATH).expect("NO {SAVE_CACHE_PATH} found");
+    let file = match std::fs::OpenOptions::new().write(true).truncate(true).open(SAVE_CACHE_PATH){
+        Ok(a) => {a},
+        Err(_) =>{
+            // If it is an appimage
+            let appimage_path = env::var("APPIMAGE")
+                    .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
+            let appimage_path = Path::new(&appimage_path);
+            let app_dir = appimage_path.parent().unwrap();
+            let settings_dir = app_dir.join("settings");
+            let path = settings_dir.join("cache.txt");
+            std::fs::OpenOptions::new().write(true).truncate(true).open(path).unwrap()
+        }
+    };
     let mut writer = BufWriter::new(file);
     for f in list_of_files{
         let size = f.size;
@@ -305,7 +384,20 @@ pub fn save_cache(list_of_files: Vec<File>){
     }
 }
 pub fn load_cache()->Vec<File>{
-    let file = std::fs::read(SAVE_CACHE_PATH).expect("NO {SAVE_CACHE_PATH} found");
+
+    let file = match std::fs::read(SAVE_CACHE_PATH){
+        Ok(a) => {a},
+        Err(_) =>{
+            // If it is an appimage
+            let appimage_path = env::var("APPIMAGE")
+                    .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
+            let appimage_path = Path::new(&appimage_path);
+            let app_dir = appimage_path.parent().unwrap();
+            let settings_dir = app_dir.join("settings");
+            let path = settings_dir.join("cache.txt");
+            std::fs::read(path).unwrap()
+        }
+    };
     let mut p = 0;
     let mut files = Vec::new();
     while p + 24 < file.len(){
