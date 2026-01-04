@@ -52,6 +52,12 @@ fn bytes_to_time(b1: u8, b2: u8, b3: u8, b4: u8, b_ms: u8, b_tz: u8)->i64{
             offset_secs += 900 * (b_tz & 0b00111111) as i32;
         }
     }
+    if second > 60{return 0}
+    if minute > 59{return 0}
+    if hour > 23{return 0}
+    if day < 1 || day > 31{return 0}
+    if month < 1 || month > 12{return 0}
+    if year < 1980 || year > 2107{return 0}
 
     to_epoch(
         year as i32, month as u32, day as u32,
