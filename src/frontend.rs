@@ -38,6 +38,7 @@ impl Anything{
         if app.drives.len() == 0{
             app.no_disk_popup = true;
         }
+        app.items = main::load_cache();
         app.temp = app.settings.index_every_minutes.to_string();
         app
     }
@@ -314,7 +315,6 @@ fn index_drives(drives: Vec<main::Drive>)->Vec<main::File>{
     for d in drives.clone(){
         match d.fs{
             SupportedFilesystems::Exfat => {
-                dbg!(d.clone());
                 items.append(&mut main::exfat::index(d.drive, d.mounted_at, d.ignored_dirs));
             }
         }
@@ -631,7 +631,7 @@ impl eframe::App for Anything {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         save_settings(self.settings.clone());
         save_drives(self.drives.clone());
-        // save_cache(self.items); //todo!()
+        save_cache(self.items.clone()); //todo!()
         println!("Bye Bye");
     }
 }

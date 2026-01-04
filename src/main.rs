@@ -21,11 +21,11 @@ pub fn size_to_pretty_string(size: u64) -> String{
         return format!("{:.2}TiB", size as f64 / 1099511627776.0);
     }
 }
-pub fn timestamp_to_string(timestamp_ms: i64)-> String{
-    let secs = (timestamp_ms / 1000);
-    let nanos = ((timestamp_ms % 1000) * 1_000_000) as u32; // ms → ns
+pub fn timestamp_to_string(t: i64)-> String{
+    // let secs = (timestamp_ms / 1000); commented it out because apparently the information about ms is not stored inside of the timestamp ???
+    // let nanos = ((timestamp_ms % 1000) * 1_000_000) as u32; // ms → ns
 
-    let naive =chrono::DateTime::from_timestamp(secs, nanos).expect("Invalid Time");
+    let naive =chrono::DateTime::from_timestamp(t, 0).expect("Invalid Time");
     naive.format("%d/%m/%Y %H:%M:%S").to_string()
 }
 #[derive(Debug, Default, Clone)]
@@ -287,8 +287,66 @@ pub fn load_settings() -> Settings{
     }
 }
 pub fn save_cache(list_of_files: Vec<File>){
-    todo!()
+    let file = std::fs::OpenOptions::new().write(true).truncate(true).open(SAVE_CACHE_PATH).expect("NO {SAVE_CACHE_PATH} found");
+    let mut writer = BufWriter::new(file);
+    for f in list_of_files{
+        let size = f.size;
+        let t_created = f.create_timestamp;
+        let t_modified = f.last_modified_timestamp;
+        let name = f.full_name;
+        let size_bytes = size.to_le_bytes();
+        let t_created_bytes = t_created.to_le_bytes();
+        let t_modified_bytes = t_modified.to_le_bytes();
+        // let s = format!("{size_bytes}{t_created_bytes}{t_modified_bytes}{name}");
+        let _ = writer.write_all(&size_bytes);
+        let _ = writer.write_all(&t_created_bytes);
+        let _ = writer.write_all(&t_modified_bytes);
+        let _ = writeln!(&mut writer, "{}",name);
+    }
 }
 pub fn load_cache()->Vec<File>{
-    todo!()
+    let file = std::fs::read(SAVE_CACHE_PATH).expect("NO {SAVE_CACHE_PATH} found");
+    let mut p = 0;
+    let mut files = Vec::new();
+    while p + 24 < file.len(){
+        let size =  u64::from_le_bytes([
+                file[p+0],file[p+1],file[p+2],file[p+3],
+                file[p+4],file[p+5],file[p+6],file[p+7]
+        ]);
+        let t_created =  i64::from_le_bytes([
+                file[p+8],file[p+9],file[p+10],file[p+11],
+                file[p+12],file[p+13],file[p+14],file[p+15]
+        ]);
+        let t_modified =  i64::from_le_bytes([
+                file[p+16],file[p+17],file[p+18],file[p+19],
+                file[p+20],file[p+21],file[p+22],file[p+23]
+        ]);
+        p += 24;
+        // Read null-terminated UTF-8
+        let mut name_bytes = Vec::new();
+        while p < file.len() && file[p] != b'\n' {
+            name_bytes.push(file[p]);
+            p += 1;
+        }
+        p += 1;  // Skip null terminator
+        let full_name = String::from_utf8_lossy(&name_bytes).to_string();
+        let mut is_dir = false;
+        let mut name = String::new();
+        if full_name.ends_with("/") {
+            is_dir = true;
+            let parts: Vec<&str> = full_name.rsplitn(3, '/').collect();
+            name = parts[1].to_string();
+        }else{
+            let parts: Vec<&str> = full_name.rsplitn(2,'/').collect();
+            name = parts[0].to_string();
+        }
+        files.push(File{
+            name,
+            full_name,
+            size,is_dir,
+            create_timestamp:t_created,
+            last_modified_timestamp: t_modified
+        })
+    }
+    files
 }
