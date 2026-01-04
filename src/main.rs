@@ -149,7 +149,7 @@ fn main()  {
     // If it is an appimage and settings doesn't exist then write the folder
     if env::var("APPIMAGE").is_ok() && env::var("APPIMAGE").unwrap() != String::new(){
         let appimage_path = env::var("APPIMAGE").unwrap();
-        let appimage_path = Path::new(&appimage_path);
+        let appimage_path = Path::new(&appimage_path).parent().unwrap();
         let settings_dir = appimage_path.join("settings");
         if !settings_dir.exists(){
             let _ =std::fs::create_dir_all(&settings_dir);
