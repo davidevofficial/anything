@@ -1,11 +1,33 @@
 mod exfat;
 mod frontend;
-
+use chrono;
 const SAVE_DRIVES_PATH: &str = "./settings/drives.txt";
 const SAVE_SETTINGS_PATH: &str = "./settings/settings.txt";
 const SAVE_CACHE_PATH: &str = "./settings/cache.txt";
 
+pub fn size_to_pretty_string(size: u64) -> String{
+    if size < 1024{
+        return size.to_string() + "B";
+    }
+    if size < 1048576{
+        return format!("{:.2}KiB", size as f64 / 1024.0);
+    }
+    if size < 1073741824{
+        return format!("{:.2}MiB", size as f64 / 1048576.0);
+    }
+    if size < 1099511627776{
+        return format!("{:.2}GiB", size as f64 / 1073741824.0);
+    }else{
+        return format!("{:.2}TiB", size as f64 / 1099511627776.0);
+    }
+}
+pub fn timestamp_to_string(timestamp_ms: i64)-> String{
+    let secs = (timestamp_ms / 1000);
+    let nanos = ((timestamp_ms % 1000) * 1_000_000) as u32; // ms → ns
 
+    let naive =chrono::DateTime::from_timestamp(secs, nanos).expect("Invalid Time");
+    naive.format("%d/%m/%Y %H:%M:%S").to_string()
+}
 #[derive(Debug, Default, Clone)]
 pub struct File{
     name: String,
@@ -125,6 +147,7 @@ pub fn lines_from_bytes(mut data: Vec<u8>) -> Vec<Vec<u8>> {
 
 fn main()  {
 
+    // assert_eq!(timestamp_to_string(910390), String::from("01/01/1970 00:15:10"));
     // let mut files = exfat::index(String::from("/dev/sdc1"), String::from("/media/1"), vec![
     //     // String::from("/media/1/music"),
     //     // String::from("/media/1/.Trash-1000"),
