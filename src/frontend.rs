@@ -24,10 +24,9 @@ struct Anything{
     finished_indexing: bool,
     time_last_index: Option<std::time::Instant>,
     time_last_change: Option<std::time::Instant>,
-    search_thread1: Option<std::thread::JoinHandle<Vec<main::File>>>,
-    search_thread2: Option<std::thread::JoinHandle<Vec<main::File>>>,
+    search_thread: Option<std::thread::JoinHandle<Vec<main::File>>>,
     search_results: Vec<main::File>,
-    cancel_search: Arc<AtomicBool>
+    cancel_search: Option<(std::sync::mpsc::Sender<u8>)>
 }
 
 impl Anything{
@@ -214,61 +213,13 @@ impl Anything{
 fn convert_string_to_predicates(searching_for: String)->Vec<String>{
     vec![searching_for]
 }
-fn search_30(items: Vec<main::File>, settings: main::Settings, searching_for: String)->Vec<main::File>{
+fn search(items: Vec<main::File>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<main::File>{
     let mut output: Vec<main::File> = Vec::new();
     let pred = convert_string_to_predicates(searching_for.clone());
     for p in pred{
-        if output.len() == 30{
-            return output;
-        }
-        if output.len() == 0{
-            for item in 0..items.len(){
-                let f: main::File = items[item].clone();
-                let mut n = String::new();
-                let mut m = p.clone();
-                if settings.search_full_path {
-                    n = f.full_name.clone();
-                }else{
-                    n = f.name.clone();
-                }
-                if settings.ignore_case{
-                    n = n.to_lowercase();
-                    m = m.to_lowercase();
-                }
-                if n == m{
-                    output.push(f);
-                }
-            }
-        }
-        else{
-            for f in 0..output.len(){
-                let f: main::File = items[f].clone();
-                let mut n = String::new();
-                let mut m = p.clone();
-                if settings.search_full_path {
-                    n = f.full_name.clone();
-                }
-                if settings.ignore_case{
-                    n = n.to_lowercase();
-                    m = m.to_lowercase();
-                }
-                if n.contains(&m){
-                    output.push(f);
-                }
-            }
-        }
-
-    }
-    dbg!(searching_for);
-    output
-}
-fn search(items: Vec<main::File>, settings: main::Settings, searching_for: String,cancel_flag: &Arc<AtomicBool>)->Vec<main::File>{
-    let mut output: Vec<main::File> = Vec::new();
-    let pred = convert_string_to_predicates(searching_for.clone());
-    for p in pred{
-        if cancel_flag.load(Ordering::Relaxed){
-            println!("Interrupted");
-            return Vec::new();
+        match cancel_flag.try_recv(){
+                Ok(1) => {return output},
+                _ => {}
         }
         if output.len() == 0{
             for item in 0..items.len(){
@@ -307,7 +258,6 @@ fn search(items: Vec<main::File>, settings: main::Settings, searching_for: Strin
             }
         }
     }
-    println!("Fully Searched");
     output
 }
 fn index_drives(drives: Vec<main::Drive>)->Vec<main::File>{
@@ -324,46 +274,35 @@ fn index_drives(drives: Vec<main::Drive>)->Vec<main::File>{
 impl eframe::App for Anything {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         if self.time_last_change.is_some(){
+            if self.cancel_search.is_some(){
+                let _ = self.cancel_search.as_ref().unwrap().send(1);
+            }
             if self.time_last_change.unwrap().elapsed() > std::time::Duration::from_millis(300){
+                let (s, r) = std::sync::mpsc::channel::<u8>();
+                self.cancel_search = Some(s);
                 self.time_last_change = None;
-                self.cancel_search.store(true, Ordering::Relaxed);
-                // Spawn thread 1
+
                 let ptr = self.items.as_ptr();
                 let len = self.items.len();
                 let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
-                let settings_clone = self.settings.clone();
-                let searching_for = self.searching_for.clone();
-                self.search_thread1 = Some(thread::spawn(move ||search_30(slice.to_vec(), settings_clone, searching_for)));
 
-                // Spawn thread 2
                 let settings_clone = self.settings.clone();
                 let searching_for = self.searching_for.clone();
-                self.cancel_search.store(false, Ordering::Relaxed);
-                let cancel_flag = self.cancel_search.clone();
-                self.cancel_search = cancel_flag.clone();
-                self.search_thread2 = Some(thread::spawn(move ||search(slice.to_vec(), settings_clone, searching_for, &cancel_flag)));
+                let cancel_flag = r;
+                self.search_thread = Some(thread::spawn(move ||search(slice.to_vec(), settings_clone, searching_for, cancel_flag)));
 
                 self.status = String::from("Searching...");
             }
         }
-        if let Some(handle) = &self.search_thread1 {
-            if handle.is_finished() {
-                if let Some(completed_handle) = self.search_thread1.take() {
-                    match completed_handle.join() {
-                        Ok(res) => {self.search_results = res; self.search_thread1 = None}
-                        Err(_) => {self.status = String::from("Searching Failed...")}
-                    }
-                }
-            }
-        }
-        if let Some(handle) = &self.search_thread2 {
+
+        if let Some(handle) = &self.search_thread{
             if handle.is_finished()  {
-                if let Some(completed_handle) = self.search_thread2.take() {
+                if let Some(completed_handle) = self.search_thread.take() {
                     match completed_handle.join() {
                         Ok(res) => {
                             self.status = format!("{} Files/Directories found",res.len());
                             self.search_results = res;
-                            self.search_thread2 = None;
+                            self.search_thread = None;
                         }
                         Err(_) => {self.status = String::from("Searching Interrupted or Failed...")}
                     }
