@@ -1,7 +1,9 @@
 # Anything
 Simple program made in rust with a GUI to find **any** file/directory in a list of drives.
-
+<img width="1603" height="725" alt="image" src="https://github.com/user-attachments/assets/679978fe-26a0-4deb-9e76-c1c3a1b3111e" />
+<img width="1606" height="733" alt="image" src="https://github.com/user-attachments/assets/1339f0c0-aa26-4139-af43-475d35495cdc" />
 [Installation](https://github.com/davidevofficial/anything#Installation "installation")
+
 
 Supports:
 - Supported Filesystems ExFAT...(planning to add Ext4 support and other filesystems)
