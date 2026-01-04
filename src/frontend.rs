@@ -1,11 +1,10 @@
-use eframe::egui::{self, FontId, InnerResponse, Response, TextWrapMode, UiBuilder};
+use eframe::egui::{self, FontId, TextWrapMode};
 use eframe;
-use egui_extras::{Column, TableBuilder};
-use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
+use std::sync::Arc;
 use crate::{self as main, SupportedFilesystems, save_cache, save_drives, save_settings};
-// ↓ ↑
-// todo!() add combobox filesystem type
+
 #[derive(Debug, Default)]
 struct Anything{
     items: Vec<main::File>,
@@ -24,6 +23,11 @@ struct Anything{
     indexing_handle_thread: Option<std::thread::JoinHandle<Vec<main::File>>>,
     finished_indexing: bool,
     time_last_index: Option<std::time::Instant>,
+    time_last_change: Option<std::time::Instant>,
+    search_thread1: Option<std::thread::JoinHandle<Vec<main::File>>>,
+    search_thread2: Option<std::thread::JoinHandle<Vec<main::File>>>,
+    search_results: Vec<main::File>,
+    cancel_search: Arc<AtomicBool>
 }
 
 impl Anything{
@@ -37,36 +41,261 @@ impl Anything{
         app.temp = app.settings.index_every_minutes.to_string();
         app
     }
+    fn sort_items(&mut self){
+        match self.settings.sort_in_use{
+            main::Sort::DateCreatedAscending => {
+                self.items.sort_by(|a,b| a.create_timestamp.cmp(&b.create_timestamp));
+                self.search_results.sort_by(|a,b| a.create_timestamp.cmp(&b.create_timestamp));
+
+            },
+            main::Sort::DateCreatedDescending => {
+                self.items.sort_by(|b,a| a.create_timestamp.cmp(&b.create_timestamp));
+                self.search_results.sort_by(|b,a| a.create_timestamp.cmp(&b.create_timestamp));
+            },
+            main::Sort::DateModifiedAscending => {
+                self.items.sort_by(|a,b| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
+                self.search_results.sort_by(|a,b| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
+            },
+            main::Sort::DateModifiedDescending => {
+                self.items.sort_by(|b,a| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
+                self.search_results.sort_by(|b,a| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
+            },
+            main::Sort::SizeAscending => {
+                self.items.sort_by(|a,b| a.size.cmp(&b.size));
+                self.search_results.sort_by(|a,b| a.size.cmp(&b.size));
+            },
+            main::Sort::SizeDescending => {
+                self.items.sort_by(|b,a| a.size.cmp(&b.size));
+                self.search_results.sort_by(|b,a| a.size.cmp(&b.size));
+            },
+            main::Sort::PathAscending => {
+                self.items.sort_by(|a,b| a.full_name.cmp(&b.full_name));
+                self.search_results.sort_by(|a,b| a.full_name.cmp(&b.full_name));
+            },
+            main::Sort::PathDescending => {
+                self.items.sort_by(|b,a| a.full_name.cmp(&b.full_name));
+                self.search_results.sort_by(|b,a| a.full_name.cmp(&b.full_name));
+            },
+            main::Sort::FileAscending => {
+                self.items.sort_by(|a,b| a.name.cmp(&b.name));
+                self.search_results.sort_by(|a,b| a.name.cmp(&b.name));
+            },
+            main::Sort::FileDescending => {
+                self.items.sort_by(|b,a| a.name.cmp(&b.name));
+                self.search_results.sort_by(|b,a| a.name.cmp(&b.name));
+            },
+        }
+    }
     fn render_table(&mut self, ui: &mut egui::Ui) {
 
         ui.style_mut().wrap_mode = Some(TextWrapMode::Truncate);
-
+        ui.style_mut().override_font_id = Some(FontId{size:16.0,family:egui::FontFamily::Proportional});
+        let mut arrow = vec![String::new(); 5];
+        match self.settings.sort_in_use{
+            main::Sort::DateCreatedAscending => {arrow[3] = String::from("v")},
+            main::Sort::DateCreatedDescending => {arrow[3] = String::from("^")},
+            main::Sort::DateModifiedAscending => {arrow[4] = String::from("v")},
+            main::Sort::DateModifiedDescending => {arrow[4] = String::from("^")},
+            main::Sort::SizeAscending => {arrow[2] = String::from("v")},
+            main::Sort::SizeDescending => {arrow[2] = String::from("^")},
+            main::Sort::PathAscending => {arrow[1] = String::from("v")},
+            main::Sort::PathDescending => {arrow[1] = String::from("^")},
+            main::Sort::FileAscending => {arrow[0] = String::from("v")},
+            main::Sort::FileDescending => {arrow[0] = String::from("^")},
+        }
         use egui_extras::{TableBuilder, Column};
         TableBuilder::new(ui)
-            .column(Column::auto().resizable(true))
-            .column(Column::remainder())
+            .column(Column::initial(self.settings.columns[0] as f32).resizable(true))
+            .column(Column::initial(self.settings.columns[1] as f32).resizable(true))
+            .column(Column::initial(self.settings.columns[2] as f32).resizable(true))
+            .column(Column::initial(self.settings.columns[3] as f32).resizable(true))
+            .column(Column::initial(self.settings.columns[4] as f32).resizable(true))
             .striped(true)
             .drag_to_scroll(true)
-            .header(20.0, |mut header| {
+            .header(24.0, |mut header| {
                 header.col(|ui| {
-                    ui.heading("First column");
+                    ui.horizontal(|ui|{
+                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Name {}",&arrow[0]))).clicked(){
+                            if self.settings.sort_in_use == main::Sort::FileDescending{
+                                self.settings.sort_in_use = main::Sort::FileAscending;
+                            }else{
+                                self.settings.sort_in_use = main::Sort::FileDescending;
+                            }
+                            self.sort_items();
+                        };
+                    });
                 });
                 header.col(|ui| {
-                    ui.heading("Second column");
+                    ui.horizontal(|ui|{
+                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Path {}",&arrow[1]))).clicked(){
+                            if self.settings.sort_in_use == main::Sort::PathDescending{
+                                self.settings.sort_in_use = main::Sort::PathAscending;
+                            }else{
+                                self.settings.sort_in_use = main::Sort::PathDescending;
+                            }
+                            self.sort_items();
+
+                        };
+                    });
+                });
+                header.col(|ui| {
+                    ui.horizontal(|ui|{
+                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Size {}",&arrow[2]))).clicked(){
+                            if self.settings.sort_in_use == main::Sort::SizeDescending{
+                                self.settings.sort_in_use = main::Sort::SizeAscending;
+                            }else{
+                                self.settings.sort_in_use = main::Sort::SizeDescending;
+                            }
+                            self.sort_items();
+
+                        };
+                    });
+                });
+                header.col(|ui| {
+                    ui.horizontal(|ui|{
+                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Date Created {}",&arrow[3]))).clicked(){
+                            if self.settings.sort_in_use == main::Sort::DateCreatedDescending{
+                                self.settings.sort_in_use = main::Sort::DateCreatedAscending;
+                            }else{
+                                self.settings.sort_in_use = main::Sort::DateCreatedDescending;
+                            }
+                            self.sort_items();
+
+                        };
+                    });
+                });
+                header.col(|ui| {
+                    ui.horizontal(|ui|{
+                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Date Modified {}",&arrow[4]))).clicked(){
+                            if self.settings.sort_in_use == main::Sort::DateModifiedDescending{
+                                self.settings.sort_in_use = main::Sort::DateModifiedAscending;
+                            }else{
+                                self.settings.sort_in_use = main::Sort::DateModifiedDescending;
+                            }
+                            self.sort_items();
+
+                        };
+                    });
                 });
             })
             .body(|mut body| {
-                body.row(30.0, |mut row| {
+                body.rows(24.0, self.search_results.len(), |mut row| {
+                    let row_index = row.index();
                     row.col(|ui| {
-                        ui.label("Hello");
+                        ui.label(format!("{}",self.search_results[row_index].name.clone()));
                     });
                     row.col(|ui| {
-                        ui.button("world!");
+                        ui.label(format!("{}",self.search_results[row_index].full_name.clone()));
+                    });
+                    row.col(|ui| {
+                        ui.label(main::size_to_pretty_string(self.search_results[row_index].size));
+                    });
+                    row.col(|ui| {
+                        ui.label(main::timestamp_to_string(self.search_results[row_index].create_timestamp));
+                    });
+                    row.col(|ui| {
+                        ui.label(main::timestamp_to_string(self.search_results[row_index].last_modified_timestamp));
                     });
                 });
             });
     }
 
+
+}
+fn convert_string_to_predicates(searching_for: String)->Vec<String>{
+    vec![searching_for]
+}
+fn search_30(items: Vec<main::File>, settings: main::Settings, searching_for: String)->Vec<main::File>{
+    let mut output: Vec<main::File> = Vec::new();
+    let pred = convert_string_to_predicates(searching_for.clone());
+    for p in pred{
+        if output.len() == 30{
+            break;
+        }
+        if output.len() == 0{
+            for item in 0..items.len(){
+                let f: main::File = items[item].clone();
+                let mut n = String::new();
+                let mut m = p.clone();
+                if settings.search_full_path {
+                    n = f.full_name.clone();
+                }
+                if settings.ignore_case{
+                    n = n.to_lowercase();
+                    m = m.to_lowercase();
+                }
+                if n == m{
+                    output.push(f);
+                }
+            }
+        }
+        else{
+            for f in 0..output.len(){
+                let f: main::File = items[f].clone();
+                let mut n = String::new();
+                let mut m = p.clone();
+                if settings.search_full_path {
+                    n = f.full_name.clone();
+                }
+                if settings.ignore_case{
+                    n = n.to_lowercase();
+                    m = m.to_lowercase();
+                }
+                if n.contains(&m){
+                    output.push(f);
+                }
+            }
+        }
+
+    }
+    dbg!(searching_for);
+    output
+}
+fn search(items: Vec<main::File>, settings: main::Settings, searching_for: String,cancel_flag: &Arc<AtomicBool>)->Vec<main::File>{
+    let mut output: Vec<main::File> = Vec::new();
+    let pred = convert_string_to_predicates(searching_for.clone());
+    for p in pred{
+        if cancel_flag.load(Ordering::Relaxed){
+            println!("Interrupted");
+            return Vec::new();
+        }
+        if output.len() == 0{
+            for item in 0..items.len(){
+                let f: main::File = items[item].clone();
+                let mut n = String::new();
+                let mut m = searching_for.clone();
+                if settings.search_full_path {
+                    n = f.full_name.clone();
+                }
+                if settings.ignore_case{
+                    n = n.to_lowercase();
+                    m = m.to_lowercase();
+                }
+                if n.contains(&m){
+                    output.push(f);
+                }
+            }
+        }
+        else{
+            for f in 0..output.len(){
+                let f: main::File = items[f].clone();
+                let mut n = String::new();
+                let mut m = searching_for.clone();
+                if settings.search_full_path {
+                    n = f.full_name.clone();
+                }
+                if settings.ignore_case{
+                    n = n.to_lowercase();
+                    m = m.to_lowercase();
+                }
+                if n == m{
+                    output.push(f);
+                }
+            }
+        }
+    }
+    println!("Fully Searched");
+    output
 }
 fn index_drives(drives: Vec<main::Drive>)->Vec<main::File>{
     let mut items = Vec::new();
@@ -82,17 +311,66 @@ fn index_drives(drives: Vec<main::Drive>)->Vec<main::File>{
 }
 impl eframe::App for Anything {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        if self.time_last_change.is_some(){
+            if self.time_last_change.unwrap().elapsed() > std::time::Duration::from_millis(300){
+                self.time_last_change = None;
+                self.cancel_search.store(true, Ordering::Relaxed);
+                // Spawn thread 1
+                let ptr = self.items.as_ptr();
+                let len = self.items.len();
+                let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
+                let settings_clone = self.settings.clone();
+                let searching_for = self.searching_for.clone();
+                self.search_thread1 = Some(thread::spawn(move ||search_30(slice.to_vec(), settings_clone, searching_for)));
+
+                // Spawn thread 2
+                let settings_clone = self.settings.clone();
+                let searching_for = self.searching_for.clone();
+                self.cancel_search.store(false, Ordering::Relaxed);
+                let cancel_flag = self.cancel_search.clone();
+                self.cancel_search = cancel_flag.clone();
+                self.search_thread2 = Some(thread::spawn(move ||search(slice.to_vec(), settings_clone, searching_for, &cancel_flag)));
+
+                self.status = String::from("Searching...");
+            }
+        }
+        if let Some(handle) = &self.search_thread1 {
+            if handle.is_finished() {
+                if let Some(completed_handle) = self.search_thread1.take() {
+                    match completed_handle.join() {
+                        Ok(res) => {self.search_results = res; self.search_thread1 = None}
+                        Err(_) => {self.status = String::from("Searching Failed...")}
+                    }
+                }
+            }
+        }
+        if let Some(handle) = &self.search_thread2 {
+            if handle.is_finished()  {
+                if let Some(completed_handle) = self.search_thread2.take() {
+                    match completed_handle.join() {
+                        Ok(res) => {
+                            self.status = format!("{} Files/Directories found",res.len());
+                            self.search_results = res;
+                            self.search_thread2 = None;
+                        }
+                        Err(_) => {self.status = String::from("Searching Interrupted or Failed...")}
+                    }
+                }
+            }
+        }
 
         if !self.settings.index_on_startup && self.time_last_index.is_none(){
             self.indexed = true
         }
 
-        if self.settings.index_on_startup && !self.indexed{
-            self.indexed = true;
-            let d_clone = self.drives.clone();
-            self.indexing_handle_thread = Some(thread::spawn(||index_drives(d_clone)));
-            self.finished_indexing = false;
-            self.time_last_index = Some(std::time::Instant::now());
+        if !self.indexed{
+            if self.status != String::from("Searching..."){
+                self.indexed = true;
+                let d_clone = self.drives.clone();
+                self.indexing_handle_thread = Some(thread::spawn(||index_drives(d_clone)));
+                self.finished_indexing = false;
+                self.time_last_index = Some(std::time::Instant::now());
+            }
         }
 
         if let Some(handle) = &self.indexing_handle_thread {
@@ -102,6 +380,7 @@ impl eframe::App for Anything {
                             match completed_handle.join() {
                                 Ok(items) => {
                                     self.items = items;
+                                    self.sort_items();
                                     self.status = format!("Indexing took: {:.3?}, Files found: {}"
                                         ,self.time_last_index.unwrap().elapsed(),self.items.len());
                                     self.finished_indexing = true;
@@ -182,11 +461,13 @@ impl eframe::App for Anything {
                     self.time_last_index = Some(std::time::Instant::now());
                 }
                 if ui.small_button("🔎").clicked(){
-                    println!("aura")
+                    self.time_last_change = Some(std::time::Instant::now());
                 }
                 if ui.add(egui::TextEdit::singleline(&mut self.searching_for)
                     .desired_width(ui.available_width() * 1.0)).changed(){
-                        println!("Bro is typing");
+                        if self.settings.instant_search{
+                            self.time_last_change = Some(std::time::Instant::now());
+                        }
                 };
             });
         });
@@ -225,6 +506,9 @@ impl eframe::App for Anything {
                         ui.horizontal(|ui|{
                             ui.checkbox(&mut new_settings.ignore_case, "Ignore Case");
                         });
+                        ui.horizontal(|ui|{
+                            ui.checkbox(&mut new_settings.search_full_path, "Search Full Path");
+                        });
 
                         ui.horizontal(|ui|{
                             if ui.add_sized(ui.available_size(), egui::Button::new("Ok")).clicked(){
@@ -249,7 +533,7 @@ impl eframe::App for Anything {
                                 ui.label(drives[i].drive.clone()+"    ");
                                 ui.label(drives[i].mounted_at.clone()+"    ");
 
-                                let before = drives[i].fs;
+                                // let before = drives[i].fs;
                                 egui::ComboBox::new(drives[i].drive.clone(),"")
                                     .selected_text(format!("{:?}", drives[i].fs))
                                     .show_ui(ui, |ui| {
@@ -325,7 +609,7 @@ impl eframe::App for Anything {
 
         // Status bar
         egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
-            ui.style_mut().override_font_id = Some(FontId{size:24.0,family:egui::FontFamily::Monospace});
+            ui.style_mut().override_font_id = Some(FontId{size:20.0,family:egui::FontFamily::Proportional});
             ui.label(self.status.clone());
         });
 
@@ -342,7 +626,7 @@ impl eframe::App for Anything {
 pub fn start_frontend() -> Result<(), eframe::Error>{
     let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
-                .with_inner_size([1200.0, 800.0])
+                .with_inner_size([1550.0, 700.0])
                 .with_title("Anything")
                 .with_icon(
                     // NOTE: Adding an icon is optional
