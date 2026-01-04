@@ -139,6 +139,6 @@ Another big problem is that each Filesystem has to be added manually and should 
 
 Copyright (c) Davidevofficial
 
-This project is licensed under the GNU General Public License v2.0 (GPL-2.0).
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
 
 Any contribution is appreciated <3.
