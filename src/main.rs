@@ -44,6 +44,7 @@ pub struct Settings{
     instant_search: bool,
     journal: bool,
     ignore_case: bool,
+    search_full_path: bool
 }
 fn string_to_sort(string: &str) -> Sort{
     match string{
@@ -208,6 +209,7 @@ pub fn save_settings(settings: Settings){
             4 => {writeln!(writer, "instant_search:{:?}",settings.instant_search).unwrap()}
             5 => {writeln!(writer, "journal:{:?}",settings.journal).unwrap()}
             6 => {writeln!(writer, "ignore_case:{:?}",settings.ignore_case).unwrap()}
+            7 => {writeln!(writer, "search_full_path:{:?}",settings.search_full_path).unwrap()}
             _ => {}
         }
 
@@ -221,11 +223,12 @@ pub fn load_settings() -> Settings{
 
     let mut sort_in_use = Sort::default();
     let mut index_on_startup = true;
-    let mut index_every_seconds = 0;
+    let mut index_every_minutes = 0;
     let mut instant_search = true;
     let mut journal = false;
     let mut ignore_case = true;
     let mut columns = Vec::new();
+    let mut search_full_path = true;
 
     let mut i = 0;
     for line in reader.lines(){
@@ -239,10 +242,11 @@ pub fn load_settings() -> Settings{
                 }
                 3=>{sort_in_use=string_to_sort(attr)}
                 5=>{index_on_startup=attr=="true"}
-                7=>{index_every_seconds=attr.parse::<u32>().expect("Line {i} is not a number")}
+                7=>{index_every_minutes=attr.parse::<u32>().expect("Line {i} is not a number")}
                 9=>{instant_search=attr=="true"}
                 11=>{journal=attr=="true"}
                 13=>{ignore_case=attr=="true"}
+                15=>{search_full_path=attr=="true"}
                 _ =>{}
             }
             i+= 1;
@@ -251,11 +255,12 @@ pub fn load_settings() -> Settings{
     Settings{
         columns,
         sort_in_use,
-        index_every_minutes: index_every_seconds,
+        index_every_minutes,
         index_on_startup,
         instant_search,
         journal,
-        ignore_case
+        ignore_case,
+        search_full_path
     }
 }
 pub fn save_cache(list_of_files: Vec<File>){
