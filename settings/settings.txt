@@ -1,7 +1,8 @@
-columns:[50, 250, 50, 50, 50]
-sort_in_use:DateCreatedAscending
+columns:[200, 950, 70, 150, 150]
+sort_in_use:SizeAscending
 index_on_startup:true
 index_every_minutes:60
 instant_search:true
 journal:false
 ignore_case:true
+search_full_path:true
