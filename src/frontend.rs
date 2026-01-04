@@ -219,7 +219,7 @@ fn search_30(items: Vec<main::File>, settings: main::Settings, searching_for: St
     let pred = convert_string_to_predicates(searching_for.clone());
     for p in pred{
         if output.len() == 30{
-            break;
+            return output;
         }
         if output.len() == 0{
             for item in 0..items.len(){
