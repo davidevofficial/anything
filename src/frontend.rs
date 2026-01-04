@@ -179,23 +179,31 @@ impl Anything{
                 });
             })
             .body(|mut body| {
-                body.rows(24.0, self.search_results.len(), |mut row| {
+                body.rows(24.0, self.search_results.len()+5, |mut row| {
                     let row_index = row.index();
-                    row.col(|ui| {
-                        ui.label(format!("{}",self.search_results[row_index].name.clone()));
-                    });
-                    row.col(|ui| {
-                        ui.label(format!("{}",self.search_results[row_index].full_name.clone()));
-                    });
-                    row.col(|ui| {
-                        ui.label(main::size_to_pretty_string(self.search_results[row_index].size));
-                    });
-                    row.col(|ui| {
-                        ui.label(main::timestamp_to_string(self.search_results[row_index].create_timestamp));
-                    });
-                    row.col(|ui| {
-                        ui.label(main::timestamp_to_string(self.search_results[row_index].last_modified_timestamp));
-                    });
+                    if row_index < self.search_results.len(){
+                        row.col(|ui| {
+                            ui.label(format!("{}",self.search_results[row_index].name.clone()));
+                        });
+                        row.col(|ui| {
+                            ui.label(format!("{}",self.search_results[row_index].full_name.clone()));
+                        });
+                        row.col(|ui| {
+                            ui.label(main::size_to_pretty_string(self.search_results[row_index].size));
+                        });
+                        row.col(|ui| {
+                            ui.label(main::timestamp_to_string(self.search_results[row_index].create_timestamp));
+                        });
+                        row.col(|ui| {
+                            ui.label(main::timestamp_to_string(self.search_results[row_index].last_modified_timestamp));
+                        });
+                    }else{
+                        row.col(|_ui|{});
+                        row.col(|_ui|{});
+                        row.col(|_ui|{});
+                        row.col(|_ui|{});
+                        row.col(|_ui|{});
+                    }
                 });
             });
     }
@@ -219,6 +227,8 @@ fn search_30(items: Vec<main::File>, settings: main::Settings, searching_for: St
                 let mut m = p.clone();
                 if settings.search_full_path {
                     n = f.full_name.clone();
+                }else{
+                    n = f.name.clone();
                 }
                 if settings.ignore_case{
                     n = n.to_lowercase();
@@ -266,6 +276,8 @@ fn search(items: Vec<main::File>, settings: main::Settings, searching_for: Strin
                 let mut m = searching_for.clone();
                 if settings.search_full_path {
                     n = f.full_name.clone();
+                }else{
+                    n = f.name.clone();
                 }
                 if settings.ignore_case{
                     n = n.to_lowercase();
@@ -626,7 +638,7 @@ impl eframe::App for Anything {
 pub fn start_frontend() -> Result<(), eframe::Error>{
     let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
-                .with_inner_size([1550.0, 700.0])
+                .with_inner_size([1600.0, 700.0])
                 .with_title("Anything")
                 .with_icon(
                     // NOTE: Adding an icon is optional
