@@ -322,10 +322,11 @@ fn search(items: Vec<main::File>, settings: main::Settings, searching_for: Strin
             }
         } else {
             //Later predicates only use from the previous results
+            let mut temp = Vec::new();
             let p = pred[i].clone();
             for o in 0..output.len(){
                 match cancel_flag.try_recv(){
-                    Ok(1) => {return output;}
+                    Ok(1) => {return temp;}
                     _=>{}
                 }
                 let f: main::File = output[o].clone();
@@ -345,19 +346,19 @@ fn search(items: Vec<main::File>, settings: main::Settings, searching_for: Strin
                     // Not Starts With
                     if p.1{
                         if !n.starts_with(&m){
-                            output.push(f);
+                            temp.push(f);
                         }
                     }
                     // Not Ends With
                     else if p.2{
                         if !n.ends_with(&m){
-                            output.push(f);
+                            temp.push(f);
                         }
                     }
                     // Not contains
                     else{
                         if !n.contains(&m){
-                            output.push(f);
+                            temp.push(f);
                         }
                     }
                 // Normal
@@ -365,24 +366,24 @@ fn search(items: Vec<main::File>, settings: main::Settings, searching_for: Strin
                     // Starts With
                     if p.1{
                         if n.starts_with(&m){
-                            output.push(f);
+                            temp.push(f);
                         }
                     }
                     // Ends With
                     else if p.2{
                         if n.ends_with(&m){
-                            output.push(f);
+                            temp.push(f);
                         }
                     }
                     // contains
                     else{
                         if n.contains(&m){
-                            output.push(f);
+                            temp.push(f);
                         }
                     }
                 }
-
             }
+            output = temp;
         }
     }
     output
