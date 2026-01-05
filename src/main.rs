@@ -153,16 +153,21 @@ fn main()  {
         let settings_dir = appimage_path.join("settings");
         if !settings_dir.exists(){
             let _ =std::fs::create_dir_all(&settings_dir);
-            let mut file = std::fs::File::create(&settings_dir.join("settings.txt")).unwrap();
-            let _ = file.write_all("columns:[200, 950, 100, 150, 150]\nsort_in_use:SizeAscending\nindex_on_startup:true\nindex_every_minutes:60\ninstant_search:true\njournal:false\nignore_case:true\nsearch_full_path:true".as_bytes());
+            match std::fs::File::create(&settings_dir.join("settings.txt")){
+                Ok(mut file) => {let _ = file.write_all("columns:[200, 950, 100, 150, 150]\nsort_in_use:SizeAscending\nindex_on_startup:true\nindex_every_minutes:60\ninstant_search:true\njournal:false\nignore_case:true\nsearch_full_path:true".as_bytes());}
+                Err(_) =>{}
+            }
             let _ =std::fs::File::create(&settings_dir.join("drives.txt"));
             let _ =std::fs::File::create(&settings_dir.join("cache.txt"));
         }
+    // If the folder doesn't exist then create it
     }else{
         if !Path::new(SAVE_SETTINGS_PATH).exists(){
             let _ =std::fs::create_dir_all("./settings");
-            let mut file = std::fs::File::create(SAVE_SETTINGS_PATH).unwrap();
-            let _ = file.write_all("columns:[200, 950, 100, 150, 150]\nsort_in_use:SizeAscending\nindex_on_startup:true\nindex_every_minutes:60\ninstant_search:true\njournal:false\nignore_case:true\nsearch_full_path:true".as_bytes());
+            match std::fs::File::create(SAVE_SETTINGS_PATH){
+                Ok(mut file) => {let _ = file.write_all("columns:[200, 950, 100, 150, 150]\nsort_in_use:SizeAscending\nindex_on_startup:true\nindex_every_minutes:60\ninstant_search:true\njournal:false\nignore_case:true\nsearch_full_path:true".as_bytes());}
+                Err(_) =>{}
+            }
             let _ =std::fs::File::create(SAVE_DRIVES_PATH);
             let _ =std::fs::File::create(SAVE_CACHE_PATH);
         }
@@ -179,14 +184,16 @@ pub fn save_drives(drives: Vec<Drive>){
         Ok(a) => {a},
         Err(_) =>{
             // If it is an appimage
-            let appimage_path = env::var("APPIMAGE")
-                    .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
-            let appimage_path = Path::new(&appimage_path);
-            let app_dir = appimage_path.parent().unwrap();
-            let settings_dir = app_dir.join("settings");
-            let path = settings_dir.join("drives.txt");
-            dbg!(&path);
-            std::fs::OpenOptions::new().write(true).truncate(true).open(path).unwrap()
+            match env::var("APPIMAGE"){
+                Err(_) => {return ();}
+                Ok(s) =>{
+                    let appimage_path = Path::new(&s);
+                    let app_dir = appimage_path.parent().unwrap();
+                    let settings_dir = app_dir.join("settings");
+                    let path = settings_dir.join("drives.txt");
+                    std::fs::OpenOptions::new().write(true).truncate(true).open(path).unwrap()
+                }
+            }
         }
     };
 
@@ -215,13 +222,19 @@ pub fn load_drives() -> Vec<Drive>{
         Ok(a) => {a},
         Err(_) =>{
             // If it is an appimage
-            let appimage_path = env::var("APPIMAGE")
-                    .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
-            let appimage_path = Path::new(&appimage_path);
-            let app_dir = appimage_path.parent().unwrap();
-            let settings_dir = app_dir.join("settings");
-            let path = settings_dir.join("drives.txt");
-            std::fs::File::open(path).unwrap()
+            match env::var("APPIMAGE"){
+                Err(_) => {return output;}
+                Ok(s) =>{
+                    let appimage_path = Path::new(&s);
+                    let app_dir = appimage_path.parent().unwrap();
+                    let settings_dir = app_dir.join("settings");
+                    let path = settings_dir.join("drives.txt");
+                    match std::fs::File::open(path){
+                        Ok(file) => {file}
+                        Err(_) => {return output;}
+                    }
+                }
+            }
         }
     };
 
@@ -299,13 +312,19 @@ pub fn load_settings() -> Settings{
         Ok(a) => {a},
         Err(_) =>{
             // If it is an appimage
-            let appimage_path = env::var("APPIMAGE")
-                    .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
-            let appimage_path = Path::new(&appimage_path);
-            let app_dir = appimage_path.parent().unwrap();
-            let settings_dir = app_dir.join("settings");
-            let path = settings_dir.join("settings.txt");
-            std::fs::File::open(path).unwrap()
+            match env::var("APPIMAGE"){
+                Err(_) => {return Settings::default();}
+                Ok(s) =>{
+                    let appimage_path = Path::new(&s);
+                    let app_dir = appimage_path.parent().unwrap();
+                    let settings_dir = app_dir.join("settings");
+                    let path = settings_dir.join("settings.txt");
+                    match std::fs::File::open(path){
+                        Ok(file) => {file}
+                        Err(_) => {return Settings::default();}
+                    }
+                }
+            }
         }
     };
 
@@ -389,13 +408,19 @@ pub fn load_cache()->Vec<File>{
         Ok(a) => {a},
         Err(_) =>{
             // If it is an appimage
-            let appimage_path = env::var("APPIMAGE")
-                    .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
-            let appimage_path = Path::new(&appimage_path);
-            let app_dir = appimage_path.parent().unwrap();
-            let settings_dir = app_dir.join("settings");
-            let path = settings_dir.join("cache.txt");
-            std::fs::read(path).unwrap()
+            match env::var("APPIMAGE"){
+                Err(_) => {return Vec::new();}
+                Ok(s) =>{
+                    let appimage_path = Path::new(&s);
+                    let app_dir = appimage_path.parent().unwrap();
+                    let settings_dir = app_dir.join("settings");
+                    let path = settings_dir.join("cache.txt");
+                    match std::fs::read(path){
+                        Ok(file) => {file}
+                        Err(_) => {return Vec::new();}
+                    }
+                }
+            }
         }
     };
     let mut p = 0;
