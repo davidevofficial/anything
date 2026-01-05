@@ -145,6 +145,8 @@ In my case sudo is perfectly acceptable (especially because I made the program m
 
 Another big problem is that support for each Filesystem is limited (it has to be added manually) for example it currently only support ExFAT filesystems
 
+Also the index gets written to cache.txt after quitting and my cache.txt with 1 million files is 175mb so make sure you have free space.
+
 # License
 
 Copyright (c) Davidevofficial
