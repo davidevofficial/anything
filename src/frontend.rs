@@ -329,7 +329,7 @@ fn search(items: Vec<main::File>, settings: main::Settings, searching_for: Strin
                 }
                 let f: main::File = output[o].clone();
                 let mut n = String::new();
-                let mut m = searching_for.clone();
+                let mut m = p.3.clone();
                 if settings.search_full_path {
                     n = f.full_name.clone();
                 }else{
