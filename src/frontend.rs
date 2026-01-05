@@ -1,8 +1,6 @@
 use eframe::egui::{self, FontId, TextWrapMode};
 use eframe;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
-use std::sync::Arc;
 use crate::{self as main, SupportedFilesystems, save_cache, save_drives, save_settings};
 
 #[derive(Debug, Default)]
@@ -26,7 +24,7 @@ struct Anything{
     time_last_change: Option<std::time::Instant>,
     search_thread: Option<std::thread::JoinHandle<Vec<main::File>>>,
     search_results: Vec<main::File>,
-    cancel_search: Option<(std::sync::mpsc::Sender<u8>)>
+    cancel_search: Option<std::sync::mpsc::Sender<u8>>
 }
 
 impl Anything{
@@ -180,7 +178,7 @@ impl Anything{
                     });
                 });
             })
-            .body(|mut body| {
+            .body(| body| {
                 body.rows(24.0, self.search_results.len()+5, |mut row| {
                     let row_index = row.index();
                     if row_index < self.search_results.len(){
@@ -400,7 +398,7 @@ fn index_drives(drives: Vec<main::Drive>)->Vec<main::File>{
     items
 }
 impl eframe::App for Anything {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if self.time_last_change.is_some(){
             if self.cancel_search.is_some(){
                 let _ = self.cancel_search.as_ref().unwrap().send(1);
