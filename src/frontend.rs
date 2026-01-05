@@ -24,7 +24,8 @@ struct Anything{
     time_last_change: Option<std::time::Instant>,
     search_thread: Option<std::thread::JoinHandle<Vec<main::File>>>,
     search_results: Vec<main::File>,
-    cancel_search: Option<std::sync::mpsc::Sender<u8>>
+    cancel_search: Option<std::sync::mpsc::Sender<u8>>,
+    times_it_has_indexed: u32,
 }
 
 impl Anything{
@@ -461,6 +462,7 @@ impl eframe::App for Anything {
                                     self.status = format!("Indexing took: {:.3?}, Files found: {}"
                                         ,self.time_last_index.unwrap().elapsed(),self.items.len());
                                     self.finished_indexing = true;
+                                    self.times_it_has_indexed += 1;
                                 }
                                 Err(_) => {
                                     self.status = String::from("Indexing failed: probably because of lacking permission or a drive didn't exist");
@@ -696,7 +698,9 @@ impl eframe::App for Anything {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         save_settings(self.settings.clone());
         save_drives(self.drives.clone());
-        save_cache(self.items.clone()); //todo!()
+        if self.times_it_has_indexed > 0{
+            save_cache(self.items.clone());
+        }
         println!("Bye Bye");
     }
 }
