@@ -1,4 +1,4 @@
-name: Build AppImage
+name: Build AppImage (Rust egui)
 
 on:
   push:
@@ -22,33 +22,41 @@ jobs:
             ubuntu:20.04 \
             bash -lc '
               set -e
-              apt-get update
-              # toolchain + dependencies for your app
-              DEBIAN_FRONTEND=noninteractive apt-get install -y \
-                build-essential cmake wget \
-                desktop-file-utils zsync \
-                fuse libfuse2
+              export DEBIAN_FRONTEND=noninteractive
 
-              # download appimagetool (or pkg2appimage/linuxdeploy, etc.)
+              apt-get update
+              # toolchain + deps
+              apt-get install -y \
+                build-essential pkg-config curl git \
+                ca-certificates \
+                desktop-file-utils zsync \
+                fuse libfuse2 wget
+
+              # install Rust
+              curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+              source "$HOME/.cargo/env"
+
+              # install cargo-appimage
+              cargo install cargo-appimage
+
+              # download appimagetool (needed by cargo-appimage)
               wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
               chmod +x appimagetool-x86_64.AppImage
+              mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
 
-              # configure & build your app (edit this for your project)
-              mkdir -p build
-              cd build
-              cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
-              make -j"$(nproc)"
-              make install DESTDIR=AppDir
+              sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+              sudo apt-get install libatk1.0-dev libgdk-pixbuf2.0-dev
+              sudo apt-get install libgtk-3-dev
 
-              # create AppImage from AppDir
-              cd ..
-              ./appimagetool-x86_64.AppImage \
-                build/AppDir \
-                Anything-x86_64.AppImage
+              # build AppImage with cargo-appimage
+              # (assumes your main binary is the default crate binary)
+              cargo appimage
+
+              # cargo-appimage by default produces something like target/appimage/<name>.AppImage
+              # Rename to Anything.AppImage; adjust path if your layout differs
+              APPIMAGE_PATH="$(find target -maxdepth 3 -type f -name '*.AppImage' | head -n 1)"
+              mv "$APPIMAGE_PATH" Anything.AppImage
             '
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Anything
-          path: Anything-x86_64.AppImage
+        uses: actions/upload-artifac
