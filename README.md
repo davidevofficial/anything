@@ -94,7 +94,7 @@ Click the index button to read and index all files on all disks you selected.
 
 The settings button opens a sub-menu with four buttons: Behaviour, Disks, Light mode and Help
 
-## Beheviour
+## Behaviour
 
 Index on startup: If it should automatically index when starting up the program
 
