@@ -64,12 +64,13 @@ jobs:
               cp settings/icon.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/Anything.png"
 
               # top-level AppRun (simple launcher)
-              cat > "$APPDIR/AppRun" <<EOF
+              cat > "$APPDIR/AppRun" << 'EOF'
               #!/bin/sh
-              HERE="\$(dirname "\$(readlink -f "\$0")")"
-              exec "\$HERE/usr/bin/Anything" "\$@"
+              HERE="$(dirname "$(readlink -f "$0")")"
+              exec "$HERE/usr/bin/Anything" "$@"
               EOF
               chmod +x "$APPDIR/AppRun"
+
 
               # top-level icon + desktop for AppImage metadata
               cp "$APPDIR/usr/share/icons/hicolor/256x256/apps/Anything.png" "$APPDIR/Anything.png"
