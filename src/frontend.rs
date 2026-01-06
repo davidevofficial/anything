@@ -742,7 +742,7 @@ pub fn start_frontend() -> Result<(), eframe::Error>{
                 .with_title("Anything")
                 .with_icon(
                     // NOTE: Adding an icon is optional
-                    eframe::icon_data::from_png_bytes(&include_bytes!("../settings/icon.png")[..])
+                    eframe::icon_data::from_png_bytes(&include_bytes!("../icon.png")[..])
                         .expect("Failed to load icon"),
                 ),
             ..Default::default()
