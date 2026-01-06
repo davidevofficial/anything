@@ -32,54 +32,10 @@ jobs:
                 desktop-file-utils zsync \
                 fuse libfuse2 wget
 
-              # install Rust
-              curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-              source "$HOME/.cargo/env"
-
-
               # build your egui app
-              cargo build --release
-
-              # create AppDir layout
-              APPDIR=AppDir
-              mkdir -p "$APPDIR/usr/bin"
-              mkdir -p "$APPDIR/usr/share/applications"
-              mkdir -p "$APPDIR/usr/share/icons/hicolor/256x256/apps"
-
-              # copy binary (change "Anything" to your crate name)
-              cp target/release/Anything "$APPDIR/usr/bin/Anything"
-
-              # desktop file (edit Name, Exec, Icon, Categories, etc.)
-              cp .github/workflows/Anything.desktop "$APPDIR/usr/share/applications/Anything.desktop"
-              chmod +x "$APPDIR/usr/share/applications/Anything.desktop"
-              echo 1
-              # icon (provide your own PNG/SVG)
-              # Example assumes you have assets/icon.png in repo
-              cp settings/icon.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/Anything.png"
-
-              cp .github/workflows/AppRun "$APPDIR/AppRun"
-              chmod +x "$APPDIR/AppRun"
-              echo 2
-              chmod +x "$APPDIR/AppRun"
-
-
-              # top-level icon + desktop for AppImage metadata
-              cp "$APPDIR/usr/share/icons/hicolor/256x256/apps/Anything.png" "$APPDIR/Anything.png"
-              cp "$APPDIR/usr/share/applications/Anything.desktop" "$APPDIR/Anything.desktop"
-
-              # download appimagetool
-              wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-              chmod +x appimagetool-x86_64.AppImage
-
-              # build AppImage
-              ./appimagetool-x86_64.AppImage "$APPDIR" Anything-x86_64.AppImage
-              echo "$APPDIR"
-              # Verify and show files at repo root
-              ls -lah
-              if [ ! -f Anything-x86_64.AppImage ]; then
-                echo "AppImage not created in /workspace"
-                exit 1
-              fi
+              APPIMAGE_EXTRACT_AND_RUN=1 cargo appimage
+              APPIMAGE_PATH="$(find target -maxdepth 3 -type f -name '*.AppImage' | head -n 1)"
+              mv "$APPIMAGE_PATH" Anything-x86_64.AppImage
             '
 
       - name: Upload AppImage artifact
