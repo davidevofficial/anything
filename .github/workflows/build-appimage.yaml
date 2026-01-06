@@ -36,6 +36,10 @@ jobs:
               source "$HOME/.cargo/env"
               cargo install cargo-appimage
               # build your egui app
+              cp ./settings/icon.png ./icon.png
+              # download appimagetool
+              wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+              chmod +x appimagetool-x86_64.AppImage
               APPIMAGE_EXTRACT_AND_RUN=1 cargo appimage
               APPIMAGE_PATH="$(find target -maxdepth 3 -type f -name '*.AppImage' | head -n 1)"
               mv "$APPIMAGE_PATH" Anything-x86_64.AppImage
