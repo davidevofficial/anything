@@ -36,6 +36,7 @@ jobs:
               curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
               source "$HOME/.cargo/env"
 
+              modprobe fuse
               # install cargo-appimage
               cargo install cargo-appimage
 
@@ -47,7 +48,6 @@ jobs:
               apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev -y libxkbcommon-dev libssl-dev
               apt-get install libatk1.0-dev libgdk-pixbuf2.0-dev -y
               apt-get install libgtk-3-dev -y
-
               # build AppImage with cargo-appimage
               # (assumes your main binary is the default crate binary)
               cargo appimage
