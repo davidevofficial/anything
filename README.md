@@ -64,7 +64,7 @@ and write into the file the following (substitute /path/to/Anything.AppImage wit
 ```
 #!/usr/bin/env bash
 xhost +SI:localuser:root
-pkexec env DISPLAY=$DISPLAY /media/SSD_ESTERNA/Davide/Apps/Apps/anything/Anything.AppImage
+pkexec env DISPLAY=$DISPLAY /path/to/Anything-x86_64.AppImage
 ```
 
 In the future I'll support other means for distributing the binary such as Flatpaks
