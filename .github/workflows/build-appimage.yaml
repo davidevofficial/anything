@@ -80,8 +80,6 @@ jobs:
               chmod +x appimagetool-x86_64.AppImage
 
               # build AppImage
-              echo "$APPDIR"
-              ls
               ./appimagetool-x86_64.AppImage "$APPDIR" Anything-x86_64.AppImage
             '
 
@@ -89,4 +87,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Anything
-          path: Anything-86_64.AppImage
+          path: Anything-x86_64.AppImage
