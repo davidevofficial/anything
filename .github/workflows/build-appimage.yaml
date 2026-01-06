@@ -31,6 +31,9 @@ jobs:
                 ca-certificates \
                 desktop-file-utils zsync \
                 fuse libfuse2 wget
+                            # install Rust
+              curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+              source "$HOME/.cargo/env"
 
               # build your egui app
               APPIMAGE_EXTRACT_AND_RUN=1 cargo appimage
