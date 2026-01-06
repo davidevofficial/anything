@@ -42,8 +42,10 @@ sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev lib
 sudo apt-get install libatk1.0-dev libgdk-pixbuf2.0-dev
 sudo apt-get install libgtk-3-dev
 cargo build --release (or debug if you want debug)
+```
 
 Final File structure (after running for the first time) should look like this:
+```
 ./
 ├── Anything
 └── settings/
@@ -51,6 +53,18 @@ Final File structure (after running for the first time) should look like this:
     ├── drives.txt
     ├── icon.png
     └── settings.txt
+```
+
+To create a way to click and run the AppImage generate a file (Anything.sh)
+```
+touch Anything.sh
+```
+
+and write into the file the following (substitute /path/to/Anything.AppImage with the path to the AppImage)
+```
+#!/usr/bin/env bash
+xhost +SI:localuser:root
+pkexec env DISPLAY=$DISPLAY /media/SSD_ESTERNA/Davide/Apps/Apps/anything/Anything.AppImage
 ```
 
 In the future I'll support other means for distributing the binary such as Flatpaks
@@ -78,7 +92,7 @@ Click the Search button to search based on what you wrote in the search bar (if 
 
 Click the index button to read and index all files on all disks you selected.
 
-The settings button opens a sub-menu with two buttons: Behaviour and Disks
+The settings button opens a sub-menu with four buttons: Behaviour, Disks, Light mode and Help
 
 ## Beheviour
 
