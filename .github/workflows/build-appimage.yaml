@@ -65,10 +65,10 @@ jobs:
 
               # top-level AppRun (simple launcher)
               cat > "$APPDIR/AppRun" <<EOF
-#!/bin/sh
-HERE="$(dirname "$(readlink -f "$0")")"
-exec "$HERE/usr/bin/Anything" "$@"
-EOF
+              #!/bin/sh
+              HERE="$(dirname "$(readlink -f "$0")")"
+              exec "$HERE/usr/bin/Anything" "$@"
+              EOF
               echo 2
               chmod +x "$APPDIR/AppRun"
 
