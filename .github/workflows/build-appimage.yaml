@@ -59,4 +59,4 @@ jobs:
             '
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifac
+        uses: actions/upload-artifact
