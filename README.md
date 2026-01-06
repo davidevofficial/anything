@@ -55,17 +55,30 @@ Final File structure (after running for the first time) should look like this:
     └── settings.txt
 ```
 
-To create a way to click and run the AppImage generate a file (Anything.sh)
+To create a way to double click and run the AppImage you can generate a .desktop file
 ```
-touch Anything.sh
+touch Anything.desktop
 ```
 
-and write into the file the following (substitute /path/to/Anything.AppImage with the path to the AppImage)
+and write into the file (substitute /path/to/Anything.AppImage with the path to the AppImage). it should look something like this:
 ```
-#!/usr/bin/env bash
-xhost +SI:localuser:root
-pkexec env DISPLAY=$DISPLAY /path/to/Anything-x86_64.AppImage
+[Desktop Entry]
+Comment=
+Exec=pkexec env DISPLAY=$DISPLAY  '/path/to/Anything.AppImage'
+GenericName=file search GUI
+Icon=/path/to/icon.png
+Name=Anything
+NoDisplay=false
+Path=/path/to/directory/that/contains/anything
+PrefersNonDefaultGPU=false
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+X-KDE-SubstituteUID=false
+X-KDE-Username=
 ```
+Based on the Desktop Environment you can copy the file inside of /usr/share/applications/ or to /home/USER/.local/share/applications , doing so will add desktop integration
 
 In the future I'll support other means for distributing the binary such as Flatpaks
 
