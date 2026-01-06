@@ -59,4 +59,7 @@ jobs:
             '
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anything
+          path: Anything.AppImage
