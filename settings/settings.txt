@@ -6,3 +6,4 @@ instant_search:true
 journal:false
 ignore_case:true
 search_full_path:true
+light_mode:true

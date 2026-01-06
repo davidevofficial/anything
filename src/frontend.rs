@@ -26,6 +26,7 @@ struct Anything{
     search_results: Vec<main::File>,
     cancel_search: Option<std::sync::mpsc::Sender<u8>>,
     times_it_has_indexed: u32,
+    not_first_frame: bool,
 }
 
 impl Anything{
@@ -400,6 +401,14 @@ fn index_drives(drives: Vec<main::Drive>)->Vec<main::File>{
 }
 impl eframe::App for Anything {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if !self.not_first_frame{
+            self.not_first_frame = true;
+            if self.settings.light_mode {
+                ctx.set_theme(egui::Theme::Light);
+            } else {
+                ctx.set_theme(egui::Theme::Dark);
+            }
+        }
         if self.time_last_change.is_some(){
             if self.cancel_search.is_some(){
                 let _ = self.cancel_search.as_ref().unwrap().send(1);
@@ -531,6 +540,28 @@ impl eframe::App for Anything {
                     if ui.button("Disks").clicked() {
                         self.disk_window = true;
                     }
+                    ui.checkbox(&mut self.settings.light_mode, "Light mode").changed().then(|| {
+                        if self.settings.light_mode {
+                            ctx.set_theme(egui::Theme::Light);
+                        } else {
+                            ctx.set_theme(egui::Theme::Dark);
+                        }
+                    });
+                    ui.menu_button("Help", |ui|{
+                        ui.style_mut().override_font_id = Some(FontId{size:20.0,family:egui::FontFamily::Monospace});
+                        ui.label("Search Options:");
+                        ui.label("Simple search:\n xyz zyx = contains \"xyz zyx\"");
+                        ui.label("Complex search:\n \\ xyz = contains \"xyz\" (The space is necessary)");
+                        ui.label("\\!xyz = doesn't contain \"xyz\"");
+                        ui.label("\\*_xyz = ends with \"xyz\"");
+                        ui.label("\\_*xyz = starts with \"xyz\"");
+                        ui.label("\\!_*xyz = doesn't ends with \"xyz\"");
+                        ui.label("\\!*_xyz = doesn't starts with \"xyz\"");
+                        ui.label("\\ xyz\\ zyx =  Contains both \"xyz\" AND \"zyx\"");
+                        ui.separator();
+                        ui.label("For more information see:");
+                        ui.hyperlink_to("Anything on github:\nhttps://github.com/davidevofficial/anything", "https://github.com/davidevofficial/anything")
+                    });
                 });
                 if ui.button("🔄").clicked(){
                     self.indexed = true;

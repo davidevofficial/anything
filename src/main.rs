@@ -66,7 +66,8 @@ pub struct Settings{
     instant_search: bool,
     journal: bool,
     ignore_case: bool,
-    search_full_path: bool
+    search_full_path: bool,
+    light_mode: bool
 }
 fn string_to_sort(string: &str) -> Sort{
     match string{
@@ -299,6 +300,7 @@ pub fn save_settings(settings: Settings){
             5 => {writeln!(writer, "journal:{:?}",settings.journal).unwrap()}
             6 => {writeln!(writer, "ignore_case:{:?}",settings.ignore_case).unwrap()}
             7 => {writeln!(writer, "search_full_path:{:?}",settings.search_full_path).unwrap()}
+            8 => {writeln!(writer, "light_mode:{:?}",settings.light_mode).unwrap()}
             _ => {}
         }
 
@@ -338,6 +340,7 @@ pub fn load_settings() -> Settings{
     let mut ignore_case = true;
     let mut columns = Vec::new();
     let mut search_full_path = true;
+    let mut light_mode = true;
 
     let mut i = 0;
     for line in reader.lines(){
@@ -356,6 +359,8 @@ pub fn load_settings() -> Settings{
                 11=>{journal=attr=="true"}
                 13=>{ignore_case=attr=="true"}
                 15=>{search_full_path=attr=="true"}
+                17=>{light_mode=attr=="true"}
+
                 _ =>{}
             }
             i+= 1;
@@ -369,7 +374,8 @@ pub fn load_settings() -> Settings{
         instant_search,
         journal,
         ignore_case,
-        search_full_path
+        search_full_path,
+        light_mode
     }
 }
 pub fn save_cache(list_of_files: Vec<File>){
