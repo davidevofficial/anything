@@ -50,8 +50,8 @@ jobs:
               cp target/release/Anything "$APPDIR/usr/bin/Anything"
 
               # desktop file (edit Name, Exec, Icon, Categories, etc.)
-              cp .github/workflows/Anything.desktop "$APPDIR/Anything.desktop"
-              chmod +x "$APPDIR/Anything.desktop"
+              cp .github/workflows/Anything.desktop "$APPDIR/usr/share/applications/Anything.desktop"
+              chmod +x "$APPDIR/usr/share/applications/Anything.desktop"
               echo 1
               # icon (provide your own PNG/SVG)
               # Example assumes you have assets/icon.png in repo
