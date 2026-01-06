@@ -81,6 +81,13 @@ jobs:
 
               # build AppImage
               ./appimagetool-x86_64.AppImage "$APPDIR" Anything-x86_64.AppImage
+              echo "$APPDIR"
+              # Verify and show files at repo root
+              ls -lah
+              if [ ! -f Anything-x86_64.AppImage ]; then
+                echo "AppImage not created in /workspace"
+                exit 1
+              fi
             '
 
       - name: Upload AppImage artifact
