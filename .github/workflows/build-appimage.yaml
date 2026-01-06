@@ -80,7 +80,7 @@ jobs:
               chmod +x appimagetool-x86_64.AppImage
 
               # build AppImage
-              ./appimagetool-x86_64.AppImage "$APPDIR" MyApp-x86_64.AppImage
+              ./appimagetool-x86_64.AppImage "$APPDIR" Anything-x86_64.AppImage
             '
 
       - name: Upload AppImage artifact
