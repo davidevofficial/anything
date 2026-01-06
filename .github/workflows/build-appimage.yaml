@@ -34,7 +34,7 @@ jobs:
                             # install Rust
               curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
               source "$HOME/.cargo/env"
-
+              cargo install cargo-appimage
               # build your egui app
               APPIMAGE_EXTRACT_AND_RUN=1 cargo appimage
               APPIMAGE_PATH="$(find target -maxdepth 3 -type f -name '*.AppImage' | head -n 1)"
