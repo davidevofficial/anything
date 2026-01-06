@@ -1,4 +1,4 @@
-name: Build AppImage (old glibc)
+name: Build AppImage
 
 on:
   push:
