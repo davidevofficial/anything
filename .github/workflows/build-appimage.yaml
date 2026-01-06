@@ -56,7 +56,7 @@ jobs:
               Name=Anything
               Exec=Anything
               Icon=Anything
-              Categories=Game;
+              Categories=Utility;
               EOF
 
               # icon (provide your own PNG/SVG)
@@ -80,6 +80,8 @@ jobs:
               chmod +x appimagetool-x86_64.AppImage
 
               # build AppImage
+              echo "$APPDIR"
+              ls
               ./appimagetool-x86_64.AppImage "$APPDIR" Anything-x86_64.AppImage
             '
 
