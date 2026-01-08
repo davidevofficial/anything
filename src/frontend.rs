@@ -283,7 +283,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         // Not Starts With
                         if p.1{
                             if !n.starts_with(&m){
-                                cache_dir[j] = true;
+                                if cache_dir[j]{}
                             }else{
                                 cache_dir[j] = false;
                             }
@@ -295,7 +295,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         // Not contains
                         else{
                             if !n.contains(&m){
-                                cache_dir[j] = true;
+                                if cache_dir[j]{}
                             }else{
                                 cache_dir[j] = false;
                             }
@@ -305,7 +305,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         // Starts With
                         if p.1{
                             if n.starts_with(&m){
-                                cache_dir[j] = true;
+                                if cache_dir[j]{}
                             }else{
                                 cache_dir[j] = false;
                             }
@@ -317,7 +317,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         // contains
                         else{
                             if n.contains(&m){
-                                cache_dir[j] = true;
+                                if cache_dir[j]{}
                             }else{
                                 cache_dir[j] = false;
                             }
