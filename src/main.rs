@@ -1,9 +1,6 @@
 mod exfat;
 mod frontend;
 use chrono;
-const SAVE_DRIVES_PATH: &str = "./settings/drives.txt";
-const SAVE_SETTINGS_PATH: &str = "./settings/settings.txt";
-const SAVE_CACHE_PATH: &str = "./settings/cache.txt";
 
 pub fn size_to_pretty_string(size: u64) -> String{
     if size < 1024{
@@ -29,9 +26,13 @@ pub fn timestamp_to_string(t: i64)-> String{
     naive.format("%d/%m/%Y %H:%M:%S").to_string()
 }
 #[derive(Debug, Default, Clone)]
+pub struct Directory{
+    name: String
+}
+#[derive(Debug, Default, Clone)]
 pub struct File{
     name: String,
-    full_name: String,
+    parent: u32,
     size: u64,
     is_dir: bool,
     create_timestamp: i64,
@@ -147,6 +148,14 @@ pub fn lines_from_bytes(mut data: Vec<u8>) -> Vec<Vec<u8>> {
 }
 
 fn main()  {
+    println!("CWD: {:?}", env::current_dir().unwrap());
+    println!("Binary Location: {:?}", env::current_exe().unwrap());
+    let binary_path = env::current_exe().unwrap();
+    let parent_dir = binary_path.parent().unwrap();
+    let save_settings_path = parent_dir.join("settings").join("settings.txt");
+    let save_drives_path = parent_dir.join("settings").join("drives.txt");
+    let save_cache_path = parent_dir.join("settings").join("cache.txt");
+
     // If it is an appimage and settings doesn't exist then write the folder
     if env::var("APPIMAGE").is_ok() && env::var("APPIMAGE").unwrap() != String::new(){
         let appimage_path = env::var("APPIMAGE").unwrap();
@@ -162,15 +171,16 @@ fn main()  {
             let _ =std::fs::File::create(&settings_dir.join("cache.txt"));
         }
     // If the folder doesn't exist then create it
+
     }else{
-        if !Path::new(SAVE_SETTINGS_PATH).exists(){
+        if !save_settings_path.exists(){
             let _ =std::fs::create_dir_all("./settings");
-            match std::fs::File::create(SAVE_SETTINGS_PATH){
+            match std::fs::File::create(save_settings_path){
                 Ok(mut file) => {let _ = file.write_all("columns:[200, 950, 100, 150, 150]\nsort_in_use:SizeAscending\nindex_on_startup:true\nindex_every_minutes:60\ninstant_search:true\njournal:false\nignore_case:true\nsearch_full_path:true".as_bytes());}
                 Err(_) =>{}
             }
-            let _ =std::fs::File::create(SAVE_DRIVES_PATH);
-            let _ =std::fs::File::create(SAVE_CACHE_PATH);
+            let _ =std::fs::File::create(save_drives_path);
+            let _ =std::fs::File::create(save_cache_path);
         }
     };
 
@@ -181,7 +191,10 @@ use std::io::{BufRead, BufWriter, Write};
 use std::env;
 use std::path::Path;
 pub fn save_drives(drives: Vec<Drive>){
-    let file = match std::fs::OpenOptions::new().write(true).truncate(true).open(SAVE_DRIVES_PATH){
+    let binary_path = env::current_exe().unwrap();
+    let parent_dir = binary_path.parent().unwrap();
+    let save_drives_path = parent_dir.join("settings").join("drives.txt");
+    let file = match std::fs::OpenOptions::new().write(true).truncate(true).open(save_drives_path){
         Ok(a) => {a},
         Err(_) =>{
             // If it is an appimage
@@ -218,8 +231,10 @@ pub fn save_drives(drives: Vec<Drive>){
 }
 pub fn load_drives() -> Vec<Drive>{
     let mut output = Vec::new();
-
-    let file = match std::fs::File::open(SAVE_DRIVES_PATH){
+    let binary_path = env::current_exe().unwrap();
+    let parent_dir = binary_path.parent().unwrap();
+    let save_drives_path = parent_dir.join("settings").join("drives.txt");
+    let file = match std::fs::File::open(save_drives_path){
         Ok(a) => {a},
         Err(_) =>{
             // If it is an appimage
@@ -274,10 +289,14 @@ pub fn load_drives() -> Vec<Drive>{
 }
 pub fn save_settings(settings: Settings){
 
-    let file = match std::fs::OpenOptions::new().write(true).truncate(true).open(SAVE_SETTINGS_PATH){
+    let binary_path = env::current_exe().unwrap();
+    let parent_dir = binary_path.parent().unwrap();
+    let save_settings_path = parent_dir.join("settings").join("settings.txt");
+    let file = match std::fs::OpenOptions::new().write(true).truncate(true).open(save_settings_path){
         Ok(a) => {a},
-        Err(_) =>{
+        Err(e) =>{
             // If it is an appimage
+            dbg!(e);
             let appimage_path = env::var("APPIMAGE")
                     .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "APPIMAGE env var not set")).unwrap();
             let appimage_path = Path::new(&appimage_path);
@@ -310,7 +329,10 @@ pub fn save_settings(settings: Settings){
 }
 pub fn load_settings() -> Settings{
 
-    let file = match std::fs::File::open(SAVE_SETTINGS_PATH){
+    let binary_path = env::current_exe().unwrap();
+    let parent_dir = binary_path.parent().unwrap();
+    let save_settings_path = parent_dir.join("settings").join("settings.txt");
+    let file = match std::fs::File::open(save_settings_path){
         Ok(a) => {a},
         Err(_) =>{
             // If it is an appimage
@@ -378,8 +400,11 @@ pub fn load_settings() -> Settings{
         light_mode
     }
 }
-pub fn save_cache(list_of_files: Vec<File>){
-    let file = match std::fs::OpenOptions::new().write(true).truncate(true).open(SAVE_CACHE_PATH){
+pub fn save_cache(list_of_files: Vec<File>, list_of_directories: Vec<Directory>){
+    let binary_path = env::current_exe().unwrap();
+    let parent_dir = binary_path.parent().unwrap();
+    let save_cache_path = parent_dir.join("settings").join("cache.txt");
+    let file = match std::fs::OpenOptions::new().write(true).truncate(true).open(save_cache_path){
         Ok(a) => {a},
         Err(_) =>{
             // If it is an appimage
@@ -393,29 +418,39 @@ pub fn save_cache(list_of_files: Vec<File>){
         }
     };
     let mut writer = BufWriter::new(file);
+    let _ = writer.write_all(&(list_of_directories.len() as u32).to_le_bytes());
+    let _ = writeln!(&mut writer, "");
+
+    for d in list_of_directories{
+        let _ = writeln!(&mut writer, "{}",d.name);
+    }
     for f in list_of_files{
         let size = f.size;
         let t_created = f.create_timestamp;
         let t_modified = f.last_modified_timestamp;
-        let name = f.full_name;
+        let name = f.name;
         let size_bytes = size.to_le_bytes();
         let t_created_bytes = t_created.to_le_bytes();
         let t_modified_bytes = t_modified.to_le_bytes();
+        let parent_idx = f.parent.to_le_bytes();
         // let s = format!("{size_bytes}{t_created_bytes}{t_modified_bytes}{name}");
         let _ = writer.write_all(&size_bytes);
         let _ = writer.write_all(&t_created_bytes);
         let _ = writer.write_all(&t_modified_bytes);
+        let _ = writer.write_all(&parent_idx);
         let _ = writeln!(&mut writer, "{}",name);
     }
 }
-pub fn load_cache()->Vec<File>{
-
-    let file = match std::fs::read(SAVE_CACHE_PATH){
+pub fn load_cache()->(Vec<File>, Vec<Directory>){
+    let binary_path = env::current_exe().unwrap();
+    let parent_dir = binary_path.parent().unwrap();
+    let save_cache_path = parent_dir.join("settings").join("cache.txt");
+    let file = match std::fs::read(save_cache_path){
         Ok(a) => {a},
         Err(_) =>{
             // If it is an appimage
             match env::var("APPIMAGE"){
-                Err(_) => {return Vec::new();}
+                Err(_) => {return (Vec::new(),Vec::new());}
                 Ok(s) =>{
                     let appimage_path = Path::new(&s);
                     let app_dir = appimage_path.parent().unwrap();
@@ -423,15 +458,32 @@ pub fn load_cache()->Vec<File>{
                     let path = settings_dir.join("cache.txt");
                     match std::fs::read(path){
                         Ok(file) => {file}
-                        Err(_) => {return Vec::new();}
+                        Err(_) => {return (Vec::new(),Vec::new());}
                     }
                 }
             }
         }
     };
-    let mut p = 0;
+    if file.len() == 0{
+        return (vec![], vec![]);
+    }
     let mut files = Vec::new();
-    while p + 24 < file.len(){
+    let mut directories = Vec::new();
+    let directories_n = u32::from_le_bytes([file[0],file[1],file[2],file[3]]);
+    let mut i = 5;
+    loop {
+        let mut name_bytes = Vec::new();
+        while i < file.len() && file[i] != b'\n' {
+            name_bytes.push(file[i]);
+            i += 1;
+        }
+        i += 1; //Skip the null terminator
+        let name = String::from_utf8_lossy(&name_bytes).to_string();
+        directories.push(Directory { name });
+        if directories.len() as u32 == directories_n{break;}
+    }
+    let mut p = i;
+    while p + 28 < file.len(){
         let size =  u64::from_le_bytes([
                 file[p+0],file[p+1],file[p+2],file[p+3],
                 file[p+4],file[p+5],file[p+6],file[p+7]
@@ -444,7 +496,8 @@ pub fn load_cache()->Vec<File>{
                 file[p+16],file[p+17],file[p+18],file[p+19],
                 file[p+20],file[p+21],file[p+22],file[p+23]
         ]);
-        p += 24;
+        let parent = u32::from_le_bytes([file[p+24],file[p+25],file[p+26],file[p+27]]);
+        p += 28;
         // Read null-terminated UTF-8
         let mut name_bytes = Vec::new();
         while p < file.len() && file[p] != b'\n' {
@@ -452,24 +505,18 @@ pub fn load_cache()->Vec<File>{
             p += 1;
         }
         p += 1;  // Skip null terminator
-        let full_name = String::from_utf8_lossy(&name_bytes).to_string();
+        let name = String::from_utf8_lossy(&name_bytes).to_string();
         let mut is_dir = false;
-        let mut name = String::new();
-        if full_name.ends_with("/") {
+        if name.ends_with("/"){
             is_dir = true;
-            let parts: Vec<&str> = full_name.rsplitn(3, '/').collect();
-            name = parts[1].to_string();
-        }else{
-            let parts: Vec<&str> = full_name.rsplitn(2,'/').collect();
-            name = parts[0].to_string();
         }
         files.push(File{
             name,
-            full_name,
+            parent,
             size,is_dir,
             create_timestamp:t_created,
             last_modified_timestamp: t_modified
         })
     }
-    files
+    (files, directories)
 }

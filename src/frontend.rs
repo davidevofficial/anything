@@ -5,7 +5,7 @@ use crate::{self as main, SupportedFilesystems, save_cache, save_drives, save_se
 
 #[derive(Debug, Default)]
 struct Anything{
-    items: Vec<main::File>,
+    items: (Vec<main::File>, Vec<main::Directory>),
     settings: main::Settings,
     drives: Vec<main::Drive>,
     searching_for: String,
@@ -18,7 +18,7 @@ struct Anything{
     temp: String,
     temp_drives: Vec<main::Drive>,
     indexed: bool,
-    indexing_handle_thread: Option<std::thread::JoinHandle<Vec<main::File>>>,
+    indexing_handle_thread: Option<std::thread::JoinHandle<(Vec<main::File>,Vec<main::Directory>)>>,
     finished_indexing: bool,
     time_last_index: Option<std::time::Instant>,
     time_last_change: Option<std::time::Instant>,
@@ -37,6 +37,9 @@ impl Anything{
         if app.drives.len() == 0{
             app.no_disk_popup = true;
         }
+        if app.settings.columns.len() == 0{
+            app.settings.columns = vec![200, 950, 100, 150, 150]
+        }
         app.items = main::load_cache();
         app.temp = app.settings.index_every_minutes.to_string();
         app
@@ -44,44 +47,49 @@ impl Anything{
     fn sort_items(&mut self){
         match self.settings.sort_in_use{
             main::Sort::DateCreatedAscending => {
-                self.items.sort_by(|a,b| a.create_timestamp.cmp(&b.create_timestamp));
+                self.items.0.sort_by(|a,b| a.create_timestamp.cmp(&b.create_timestamp));
                 self.search_results.sort_by(|a,b| a.create_timestamp.cmp(&b.create_timestamp));
 
             },
             main::Sort::DateCreatedDescending => {
-                self.items.sort_by(|b,a| a.create_timestamp.cmp(&b.create_timestamp));
+                self.items.0.sort_by(|b,a| a.create_timestamp.cmp(&b.create_timestamp));
                 self.search_results.sort_by(|b,a| a.create_timestamp.cmp(&b.create_timestamp));
             },
             main::Sort::DateModifiedAscending => {
-                self.items.sort_by(|a,b| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
+                self.items.0.sort_by(|a,b| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
                 self.search_results.sort_by(|a,b| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
             },
             main::Sort::DateModifiedDescending => {
-                self.items.sort_by(|b,a| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
+                self.items.0.sort_by(|b,a| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
                 self.search_results.sort_by(|b,a| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
             },
             main::Sort::SizeAscending => {
-                self.items.sort_by(|a,b| a.size.cmp(&b.size));
+                self.items.0.sort_by(|a,b| a.size.cmp(&b.size));
                 self.search_results.sort_by(|a,b| a.size.cmp(&b.size));
             },
             main::Sort::SizeDescending => {
-                self.items.sort_by(|b,a| a.size.cmp(&b.size));
+                self.items.0.sort_by(|b,a| a.size.cmp(&b.size));
                 self.search_results.sort_by(|b,a| a.size.cmp(&b.size));
             },
             main::Sort::PathAscending => {
-                self.items.sort_by(|a,b| a.full_name.cmp(&b.full_name));
-                self.search_results.sort_by(|a,b| a.full_name.cmp(&b.full_name));
+                self.items.0.sort_by(|a,b|
+                    self.items.1[a.parent as usize].name.cmp(&self.items.1[b.parent as usize].name));
+                self.search_results.sort_by(|a,b|
+                    self.items.1[a.parent as usize].name.cmp(&self.items.1[b.parent as usize].name));
+
             },
             main::Sort::PathDescending => {
-                self.items.sort_by(|b,a| a.full_name.cmp(&b.full_name));
-                self.search_results.sort_by(|b,a| a.full_name.cmp(&b.full_name));
+                self.items.0.sort_by(|b,a|
+                    self.items.1[a.parent as usize].name.cmp(&self.items.1[b.parent as usize].name));
+                self.search_results.sort_by(|b,a|
+                    self.items.1[a.parent as usize].name.cmp(&self.items.1[b.parent as usize].name));
             },
             main::Sort::FileAscending => {
-                self.items.sort_by(|a,b| a.name.cmp(&b.name));
+                self.items.0.sort_by(|a,b| a.name.cmp(&b.name));
                 self.search_results.sort_by(|a,b| a.name.cmp(&b.name));
             },
             main::Sort::FileDescending => {
-                self.items.sort_by(|b,a| a.name.cmp(&b.name));
+                self.items.0.sort_by(|b,a| a.name.cmp(&b.name));
                 self.search_results.sort_by(|b,a| a.name.cmp(&b.name));
             },
         }
@@ -185,10 +193,10 @@ impl Anything{
                     let row_index = row.index();
                     if row_index < self.search_results.len(){
                         row.col(|ui| {
-                            ui.label(format!("{}",self.search_results[row_index].name.clone()));
+                            ui.label(&self.search_results[row_index].name);
                         });
                         row.col(|ui| {
-                            ui.label(format!("{}",self.search_results[row_index].full_name.clone()));
+                            ui.label(self.items.1[self.search_results[row_index].parent as usize].name.clone()+&self.search_results[row_index].name);
                         });
                         row.col(|ui| {
                             ui.label(main::size_to_pretty_string(self.search_results[row_index].size));
@@ -253,10 +261,62 @@ fn convert_string_to_predicates(searching_for: String)->Vec<(bool,bool,bool,Stri
         vec![(false,false,false,searching_for)]
     }
 }
-fn search(items: Vec<main::File>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<main::File>{
+fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<main::File>{
     let mut output: Vec<main::File> = Vec::new();
     let pred = convert_string_to_predicates(searching_for.clone());
-    dbg!(&pred);
+    // dbg!(&pred);
+
+    let mut cache_dir = vec![false; directories.len()];
+    if settings.search_full_path{
+        for i in 0..pred.len(){
+            for j in 0..directories.len(){
+                match cancel_flag.try_recv(){
+                    Ok(1) => {return output;}
+                    _=>{}
+                }
+                let p = pred[i].clone();
+                let n = if settings.ignore_case{directories[j].name.clone().to_lowercase()}else{directories[j].name.clone()};
+                let m = if settings.ignore_case{p.3.clone().to_lowercase()}else{p.3.clone()};
+                // Negate
+                if p.0{
+                    // Not Starts With
+                    if p.1{
+                        if !n.starts_with(&m){
+                            cache_dir[j] = true;
+                        }else{
+                            cache_dir[j] = false;
+                        }
+                    }
+                    // Not contains
+                    else{
+                        if !n.contains(&m){
+                            cache_dir[j] = true;
+                        }else{
+                            cache_dir[j] = false;
+                        }
+                    }
+                // Normal
+                }else{
+                    // Starts With
+                    if p.1{
+                        if n.starts_with(&m){
+                            cache_dir[j] = true;
+                        }else{
+                            cache_dir[j] = false;
+                        }
+                    }
+                    // contains
+                    else{
+                        if n.contains(&m){
+                            cache_dir[j] = true;
+                        }else{
+                            cache_dir[j] = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
     for i in 0..pred.len(){
         if i == 0{
             //Initial pred build all the results
@@ -267,59 +327,63 @@ fn search(items: Vec<main::File>, settings: main::Settings, searching_for: Strin
                     _=>{}
                 }
                 let f: main::File = items[item].clone();
-                let mut n = String::new();
-                let mut m = p.3.clone();
-                if settings.search_full_path {
-                    n = f.full_name.clone();
+                if cache_dir[f.parent as usize]{
+                    output.push(f);
                 }else{
-                    n = f.name.clone();
+                        let mut n;
+                        let mut m = p.3.clone();
+                        if settings.search_full_path {
+                            n = directories[f.parent as usize].name.clone() + &f.name;
+                        }else{
+                            n = f.name.clone();
+                        }
+                        if settings.ignore_case{
+                            n = n.to_lowercase();
+                            m = m.to_lowercase();
+                        }
+                        // Negate
+                        if p.0{
+                            // Not Starts With
+                            if p.1{
+                                if !n.starts_with(&m){
+                                    output.push(f);
+                                }
+                            }
+                            // Not Ends With
+                            else if p.2{
+                                if !n.ends_with(&m){
+                                    output.push(f);
+                                }
+                            }
+                            // Not contains
+                            else{
+                                if !n.contains(&m){
+                                    output.push(f);
+                                }
+                            }
+                        // Normal
+                        }else{
+                            // Starts With
+                            if p.1{
+                                if n.starts_with(&m){
+                                    output.push(f);
+                                }
+                            }
+                            // Ends With
+                            else if p.2{
+                                if n.ends_with(&m){
+                                    output.push(f);
+                                }
+                            }
+                            // contains
+                            else{
+                                if n.contains(&m){
+                                    output.push(f);
+                                }
+                            }
+                        }
+                    }
                 }
-                if settings.ignore_case{
-                    n = n.to_lowercase();
-                    m = m.to_lowercase();
-                }
-                // Negate
-                if p.0{
-                    // Not Starts With
-                    if p.1{
-                        if !n.starts_with(&m){
-                            output.push(f);
-                        }
-                    }
-                    // Not Ends With
-                    else if p.2{
-                        if !n.ends_with(&m){
-                            output.push(f);
-                        }
-                    }
-                    // Not contains
-                    else{
-                        if !n.contains(&m){
-                            output.push(f);
-                        }
-                    }
-                // Normal
-                }else{
-                    // Starts With
-                    if p.1{
-                        if n.starts_with(&m){
-                            output.push(f);
-                        }
-                    }
-                    // Ends With
-                    else if p.2{
-                        if n.ends_with(&m){
-                            output.push(f);
-                        }
-                    }
-                    // contains
-                    else{
-                        if n.contains(&m){
-                            output.push(f);
-                        }
-                    }
-                }
-            }
         } else {
             //Later predicates only use from the previous results
             let mut temp = Vec::new();
@@ -330,55 +394,59 @@ fn search(items: Vec<main::File>, settings: main::Settings, searching_for: Strin
                     _=>{}
                 }
                 let f: main::File = output[o].clone();
-                let mut n = String::new();
-                let mut m = p.3.clone();
-                if settings.search_full_path {
-                    n = f.full_name.clone();
+                if cache_dir[f.parent as usize]{
+                    temp.push(f);
                 }else{
-                    n = f.name.clone();
-                }
-                if settings.ignore_case{
-                    n = n.to_lowercase();
-                    m = m.to_lowercase();
-                }
-                // Negate
-                if p.0{
-                    // Not Starts With
-                    if p.1{
-                        if !n.starts_with(&m){
-                            temp.push(f);
-                        }
+                    let mut n;
+                    let mut m = p.3.clone();
+                    if settings.search_full_path {
+                        n = directories[f.parent as usize].name.clone() + &f.name;
+                    }else{
+                        n = f.name.clone();
                     }
-                    // Not Ends With
-                    else if p.2{
-                        if !n.ends_with(&m){
-                            temp.push(f);
-                        }
+                    if settings.ignore_case{
+                        n = n.to_lowercase();
+                        m = m.to_lowercase();
                     }
-                    // Not contains
-                    else{
-                        if !n.contains(&m){
-                            temp.push(f);
+                    // Negate
+                    if p.0{
+                        // Not Starts With
+                        if p.1{
+                            if !n.starts_with(&m){
+                                temp.push(f);
+                            }
                         }
-                    }
-                // Normal
-                }else{
-                    // Starts With
-                    if p.1{
-                        if n.starts_with(&m){
-                            temp.push(f);
+                        // Not Ends With
+                        else if p.2{
+                            if !n.ends_with(&m){
+                                temp.push(f);
+                            }
                         }
-                    }
-                    // Ends With
-                    else if p.2{
-                        if n.ends_with(&m){
-                            temp.push(f);
+                        // Not contains
+                        else{
+                            if !n.contains(&m){
+                                temp.push(f);
+                            }
                         }
-                    }
-                    // contains
-                    else{
-                        if n.contains(&m){
-                            temp.push(f);
+                    // Normal
+                    }else{
+                        // Starts With
+                        if p.1{
+                            if n.starts_with(&m){
+                                temp.push(f);
+                            }
+                        }
+                        // Ends With
+                        else if p.2{
+                            if n.ends_with(&m){
+                                temp.push(f);
+                            }
+                        }
+                        // contains
+                        else{
+                            if n.contains(&m){
+                                temp.push(f);
+                            }
                         }
                     }
                 }
@@ -388,12 +456,15 @@ fn search(items: Vec<main::File>, settings: main::Settings, searching_for: Strin
     }
     output
 }
-fn index_drives(drives: Vec<main::Drive>)->Vec<main::File>{
-    let mut items = Vec::new();
+fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory>){
+    let mut items = (Vec::new(), Vec::new());
     for d in drives.clone(){
         match d.fs{
             SupportedFilesystems::Exfat => {
-                items.append(&mut main::exfat::index(d.drive, d.mounted_at, d.ignored_dirs));
+                let idx = items.1.len() as u32;
+                let (mut files, mut dir) = main::exfat::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
+                items.0.append(&mut files);
+                items.1.append(&mut dir);
             }
         }
     }
@@ -418,14 +489,16 @@ impl eframe::App for Anything {
                 self.cancel_search = Some(s);
                 self.time_last_change = None;
 
-                let ptr = self.items.as_ptr();
-                let len = self.items.len();
+                let ptr = self.items.0.as_ptr();
+                let len = self.items.0.len();
                 let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
-
+                let ptr = self.items.1.as_ptr();
+                let len = self.items.1.len();
+                let slice_2 = unsafe { std::slice::from_raw_parts(ptr, len) };
                 let settings_clone = self.settings.clone();
                 let searching_for = self.searching_for.clone();
                 let cancel_flag = r;
-                self.search_thread = Some(thread::spawn(move ||search(slice.to_vec(), settings_clone, searching_for, cancel_flag)));
+                self.search_thread = Some(thread::spawn(move ||search(slice.to_vec(),slice_2.to_vec(), settings_clone, searching_for, cancel_flag)));
 
                 self.status = String::from("Searching...");
             }
@@ -469,7 +542,7 @@ impl eframe::App for Anything {
                                     self.items = items;
                                     self.sort_items();
                                     self.status = format!("Indexing took: {:.3?}, Files found: {}"
-                                        ,self.time_last_index.unwrap().elapsed(),self.items.len());
+                                        ,self.time_last_index.unwrap().elapsed(),self.items.0.len());
                                     self.finished_indexing = true;
                                     self.times_it_has_indexed += 1;
                                 }
@@ -730,7 +803,7 @@ impl eframe::App for Anything {
         save_settings(self.settings.clone());
         save_drives(self.drives.clone());
         if self.times_it_has_indexed > 0{
-            save_cache(self.items.clone());
+            save_cache(self.items.0.clone(),self.items.1.clone());
         }
         println!("Bye Bye");
     }
