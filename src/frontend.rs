@@ -269,48 +269,113 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
     let mut cache_dir = vec![false; directories.len()];
     if settings.search_full_path{
         for i in 0..pred.len(){
-            for j in 0..directories.len(){
-                match cancel_flag.try_recv(){
-                    Ok(1) => {return output;}
-                    _=>{}
+            if i == 0{
+                for j in 0..directories.len(){
+                    match cancel_flag.try_recv(){
+                        Ok(1) => {return output;}
+                        _=>{}
+                    }
+                    let p = pred[i].clone();
+                    let n = if settings.ignore_case{directories[j].name.clone().to_lowercase()}else{directories[j].name.clone()};
+                    let m = if settings.ignore_case{p.3.clone().to_lowercase()}else{p.3.clone()};
+                    // Negate
+                    if p.0{
+                        // Not Starts With
+                        if p.1{
+                            if !n.starts_with(&m){
+                                cache_dir[j] = true;
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                        // Not ends with
+                        else if p.2{
+                            cache_dir[j] = false;
+                        }
+                        // Not contains
+                        else{
+                            if !n.contains(&m){
+                                cache_dir[j] = true;
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                    // Normal
+                    }else{
+                        // Starts With
+                        if p.1{
+                            if n.starts_with(&m){
+                                cache_dir[j] = true;
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                        // Ends with
+                        else if p.2{
+                            cache_dir[j] = false;
+                        }
+                        // contains
+                        else{
+                            if n.contains(&m){
+                                cache_dir[j] = true;
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                    }
                 }
-                let p = pred[i].clone();
-                let n = if settings.ignore_case{directories[j].name.clone().to_lowercase()}else{directories[j].name.clone()};
-                let m = if settings.ignore_case{p.3.clone().to_lowercase()}else{p.3.clone()};
-                // Negate
-                if p.0{
-                    // Not Starts With
-                    if p.1{
-                        if !n.starts_with(&m){
-                            cache_dir[j] = true;
-                        }else{
+            }else{
+                for j in 0..directories.len(){
+                    match cancel_flag.try_recv(){
+                        Ok(1) => {return output;}
+                        _=>{}
+                    }
+                    let p = pred[i].clone();
+                    let n = if settings.ignore_case{directories[j].name.clone().to_lowercase()}else{directories[j].name.clone()};
+                    let m = if settings.ignore_case{p.3.clone().to_lowercase()}else{p.3.clone()};
+                    // Negate
+                    if p.0{
+                        // Not Starts With
+                        if p.1{
+                            if !n.starts_with(&m){
+                                if cache_dir[j]{}
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                        // Not ends with
+                        else if p.2{
                             cache_dir[j] = false;
                         }
-                    }
-                    // Not contains
-                    else{
-                        if !n.contains(&m){
-                            cache_dir[j] = true;
-                        }else{
+                        // Not contains
+                        else{
+                            if !n.contains(&m){
+                                if cache_dir[j]{}
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                    // Normal
+                    }else{
+                        // Starts With
+                        if p.1{
+                            if n.starts_with(&m){
+                                if cache_dir[j]{}
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                        // Ends with
+                        else if p.2{
                             cache_dir[j] = false;
                         }
-                    }
-                // Normal
-                }else{
-                    // Starts With
-                    if p.1{
-                        if n.starts_with(&m){
-                            cache_dir[j] = true;
-                        }else{
-                            cache_dir[j] = false;
-                        }
-                    }
-                    // contains
-                    else{
-                        if n.contains(&m){
-                            cache_dir[j] = true;
-                        }else{
-                            cache_dir[j] = false;
+                        // contains
+                        else{
+                            if n.contains(&m){
+                                if cache_dir[j]{}
+                            }else{
+                                cache_dir[j] = false;
+                            }
                         }
                     }
                 }
