@@ -777,6 +777,7 @@ impl eframe::App for Anything {
                         ui.style_mut().override_font_id = Some(FontId{size:24.0,family:egui::FontFamily::Monospace});
                         // create buttons and change new_settings
                         for i in 0..drives.len(){
+                            let mut removing = false;
                             ui.horizontal(|ui|{
                                 ui.label(drives[i].drive.clone()+"    ");
                                 ui.label(drives[i].mounted_at.clone()+"    ");
@@ -794,11 +795,15 @@ impl eframe::App for Anything {
 
                                 if ui.button("-").clicked(){
                                     drives.remove(i);
+                                    removing = true;
                                 }
                                 if ui.button("\u{270F}").clicked(){
                                     self.info_popup = true;
                                 }
                             });
+                            if removing{
+                                break;
+                            }
                         }
                         ui.horizontal(|ui|{
                             if ui.add_sized(ui.available_size(), egui::Button::new("+")).clicked(){
