@@ -229,7 +229,7 @@ fn convert_string_to_predicates(searching_for: String)->Vec<(bool,bool,bool,Stri
             let mut negation = false;
             let mut starts_with = false;
             let mut ends_with = false;
-            let mut string = String::new();
+            let string;
 
             if !p.is_empty(){
                 if p.starts_with("!"){
