@@ -264,10 +264,11 @@ fn convert_string_to_predicates(searching_for: String)->Vec<(bool,bool,bool,Stri
 fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<main::File>{
     let mut output: Vec<main::File> = Vec::new();
     let pred = convert_string_to_predicates(searching_for.clone());
+    let contains_slash = if searching_for.contains(&"/"){true}else{false};
     // dbg!(&pred);
 
     let mut cache_dir = vec![false; directories.len()];
-    if settings.search_full_path{
+    if settings.search_full_path && !contains_slash{
         for i in 0..pred.len(){
             if i == 0{
                 for j in 0..directories.len(){
@@ -397,7 +398,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                 }else{
                         let mut n;
                         let mut m = p.3.clone();
-                        if settings.search_full_path {
+                        if settings.search_full_path && contains_slash {
                             n = directories[f.parent as usize].name.clone() + &f.name;
                         }else{
                             n = f.name.clone();
@@ -464,7 +465,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                 }else{
                     let mut n;
                     let mut m = p.3.clone();
-                    if settings.search_full_path {
+                    if settings.search_full_path && contains_slash {
                         n = directories[f.parent as usize].name.clone() + &f.name;
                     }else{
                         n = f.name.clone();
