@@ -596,6 +596,7 @@ impl eframe::App for Anything {
                 self.indexing_handle_thread = Some(thread::spawn(||index_drives(d_clone)));
                 self.finished_indexing = false;
                 self.time_last_index = Some(std::time::Instant::now());
+                self.time_last_change = Some(std::time::Instant::now());
             }
         }
 
