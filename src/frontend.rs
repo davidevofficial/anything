@@ -596,7 +596,6 @@ impl eframe::App for Anything {
                 self.indexing_handle_thread = Some(thread::spawn(||index_drives(d_clone)));
                 self.finished_indexing = false;
                 self.time_last_index = Some(std::time::Instant::now());
-                self.time_last_change = Some(std::time::Instant::now());
             }
         }
 
@@ -612,6 +611,8 @@ impl eframe::App for Anything {
                                         ,self.time_last_index.unwrap().elapsed(),self.items.0.len());
                                     self.finished_indexing = true;
                                     self.times_it_has_indexed += 1;
+                                    self.time_last_change = Some(std::time::Instant::now());
+
                                 }
                                 Err(_) => {
                                     self.status = String::from("Indexing failed: probably because of lacking permission or a drive didn't exist");
