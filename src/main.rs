@@ -105,28 +105,27 @@ pub enum Sort{
 }
 pub fn get_devices()->Vec<Drive>{
     let lsblk = std::process::Command::new("lsblk")
-        .args(&["-l", "-n", "-o", "NAME,MOUNTPOINT"])
+        .args(&["-l", "-n", "-o", "PATH,MOUNTPOINT"])
         .output()
         .expect("lsblk failed");
     let mut drives = Vec::new();
     let lines = lines_from_bytes(lsblk.stdout);
     for i in 0..lines.len(){
         if lines[i].contains(&b'/'){
-            if lines[i][0] == b's' && lines[i][1] == b'd' || lines[i][0] == b'n' || lines[i][0] == b'm'{
+            if lines[i][5] == b's' && lines[i][6] == b'd' || lines[i][5] == b'n' || lines[i][5] == b'm'{
                 let mut space = 0;
                 for j in 0..lines[i].len(){
                     if lines[i][j] == b' '{space=j;break;}
                 }
                 let drive = &lines[i][0..space];
                 let mut slash = 0;
-                for j in 0..lines[i].len(){
+                for j in space..lines[i].len(){
                     if lines[i][j] == b'/'{slash=j;break;}
                 }
+                if slash == 0{continue}
                 let mounted_at = &lines[i][slash..lines[i].len()-1];
-                let mut drive = drive.to_vec();
-                let mut dev = b"/dev/".to_vec();
-                dev.append(&mut drive);
-                let drive = String::from_utf8(dev).unwrap();
+                let drive = drive.to_vec();
+                let drive = String::from_utf8(drive).unwrap();
                 let mounted_at = String::from_utf8(mounted_at.to_vec()).unwrap();
                 drives.push(Drive{fs: SupportedFilesystems::default(),drive,mounted_at,ignored_dirs:vec![]});
             }
@@ -263,17 +262,17 @@ pub fn load_drives() -> Vec<Drive>{
         let line = line.unwrap();
         let mut drive = String::new();
         let mut mounted_at = String::new();
-        let mut fs = SupportedFilesystems::Exfat;
+        let mut fs = SupportedFilesystems::None;
         let mut ignored_dirs = Vec::new();
         let mut i = 0;
         for attr in line.splitn(3,' '){
             if i == 0{
                 drive=attr.to_string()
             }else if i == 1{
-                mounted_at=attr.to_string()
+                fs=string_to_fs(attr)
             }else if i == 2{
                 let att = attr.rsplit_once(' ');
-                fs=string_to_fs(att.unwrap().1)
+                mounted_at=att.unwrap().0.to_string();
             }
             i+= 1;
         }
