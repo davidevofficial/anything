@@ -536,7 +536,7 @@ fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory
             }
         }
         if !found{
-            break;
+            continue;
         }
         match d.fs{
             SupportedFilesystems::None =>{
