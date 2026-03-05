@@ -526,6 +526,9 @@ fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory
     let mut items = (Vec::new(), Vec::new());
     for d in drives.clone(){
         match d.fs{
+            SupportedFilesystems::None =>{
+
+            }
             SupportedFilesystems::Exfat => {
                 let idx = items.1.len() as u32;
                 let (mut files, mut dir) = main::exfat::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
@@ -802,6 +805,7 @@ impl eframe::App for Anything {
                                     .selected_text(format!("{:?}", drives[i].fs))
                                     .show_ui(ui, |ui| {
                                         ui.style_mut().override_font_id = Some(FontId{size:24.0,family:egui::FontFamily::Monospace});
+                                        ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::None, "Ignore");
                                         ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::Exfat, "Exfat");
                                         ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::Ext4, "Ext4");
                                         ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::Ntfs, "NTFS");

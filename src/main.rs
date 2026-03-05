@@ -56,6 +56,7 @@ fn string_to_fs(string: &str) -> SupportedFilesystems{
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum SupportedFilesystems{
     #[default]
+    None,
     Exfat,
     Ext4,
     Ntfs
