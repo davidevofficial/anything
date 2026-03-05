@@ -532,6 +532,18 @@ fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory
                 items.0.append(&mut files);
                 items.1.append(&mut dir);
             }
+            SupportedFilesystems::Ext4 => {
+                let idx = items.1.len() as u32;
+                let (mut files, mut dir) = main::ext4::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
+                items.0.append(&mut files);
+                items.1.append(&mut dir);
+            }
+            SupportedFilesystems::Ntfs => {
+                let idx = items.1.len() as u32;
+                let (mut files, mut dir) = main::ntfs::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
+                items.0.append(&mut files);
+                items.1.append(&mut dir);
+            }
         }
     }
     items
@@ -791,6 +803,9 @@ impl eframe::App for Anything {
                                     .show_ui(ui, |ui| {
                                         ui.style_mut().override_font_id = Some(FontId{size:24.0,family:egui::FontFamily::Monospace});
                                         ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::Exfat, "Exfat");
+                                        ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::Ext4, "Ext4");
+                                        ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::Ntfs, "NTFS");
+
 
                                     }
                                 );

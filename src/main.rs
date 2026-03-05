@@ -1,4 +1,6 @@
 mod exfat;
+mod ext4;
+mod ntfs;
 mod frontend;
 use chrono;
 
@@ -55,7 +57,8 @@ fn string_to_fs(string: &str) -> SupportedFilesystems{
 pub enum SupportedFilesystems{
     #[default]
     Exfat,
-    // Soon ext4
+    Ext4,
+    Ntfs
 }
 #[derive(Debug, Default, Clone)]
 pub struct Settings{
