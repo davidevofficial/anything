@@ -894,7 +894,7 @@ impl eframe::App for Anything {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         save_settings(self.settings.clone());
         save_drives(self.drives.clone());
-        if self.times_it_has_indexed > 0{
+        if self.times_it_has_indexed > 0 && self.items.0.len() > 0 &&  self.items.1.len() > 0{
             save_cache(self.items.0.clone(),self.items.1.clone());
         }
         println!("Bye Bye");
