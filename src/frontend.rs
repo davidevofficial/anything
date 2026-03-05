@@ -524,7 +524,20 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
 }
 fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory>){
     let mut items = (Vec::new(), Vec::new());
-    for d in drives.clone(){
+    let temp_drives = main::get_devices();
+    for mut d in drives.clone(){
+        let mut found = false;
+        for t in temp_drives.clone(){
+            if t.mounted_at == d.mounted_at{
+                found = true;
+                if d.drive != t.drive{
+                    d.drive = t.drive;
+                }
+            }
+        }
+        if !found{
+            break;
+        }
         match d.fs{
             SupportedFilesystems::None =>{
 
