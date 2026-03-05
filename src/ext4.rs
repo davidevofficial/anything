@@ -196,9 +196,15 @@ impl Ext4Drive {
     }
 
     fn index_from_root(mut self) -> Self {
-        self.directories.push(Directory {
-            name: self.mounted_at.clone() + "/",
-        });
+        if self.mounted_at == "/"{
+            self.directories.push(Directory {
+                name: self.mounted_at.clone(),
+            });
+        }else{
+            self.directories.push(Directory {
+                name: self.mounted_at.clone() + "/",
+            });
+        }
         let root_inode = self.read_inode(EXT4_ROOT_INO);
         let file_size = u64::from_le_bytes([
             root_inode[4], root_inode[5], root_inode[6], root_inode[7], // lo
