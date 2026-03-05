@@ -227,8 +227,8 @@ pub fn save_drives(drives: Vec<Drive>){
             }
         }
         s = format!("{s}]");
-        writeln!(writer, "{} {} {:?} {}",
-            drive.drive, drive.mounted_at, drive.fs, s).unwrap();
+        writeln!(writer, "{} {:?} {} {}",
+            drive.drive, drive.fs, drive.mounted_at, s).unwrap();
 
     }
     writer.flush().unwrap();
@@ -266,12 +266,14 @@ pub fn load_drives() -> Vec<Drive>{
         let mut fs = SupportedFilesystems::Exfat;
         let mut ignored_dirs = Vec::new();
         let mut i = 0;
-        for attr in line.split(' '){
-            match i{
-                0=>{drive=attr.to_string()}
-                1=>{mounted_at=attr.to_string()}
-                2=>{fs=string_to_fs(attr)}
-                _ =>{}
+        for attr in line.splitn(3,' '){
+            if i == 0{
+                drive=attr.to_string()
+            }else if i == 1{
+                mounted_at=attr.to_string()
+            }else if i == 2{
+                let att = attr.rsplit_once(' ');
+                fs=string_to_fs(att.unwrap().1)
             }
             i+= 1;
         }
