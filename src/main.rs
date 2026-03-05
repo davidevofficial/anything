@@ -112,7 +112,7 @@ pub fn get_devices()->Vec<Drive>{
     let lines = lines_from_bytes(lsblk.stdout);
     for i in 0..lines.len(){
         if lines[i].contains(&b'/'){
-            if lines[i][0] == b's' && lines[i][1] == b'd' || lines[i][0] == b'n'{
+            if lines[i][0] == b's' && lines[i][1] == b'd' || lines[i][0] == b'n' || lines[i][0] == b'm'{
                 let mut space = 0;
                 for j in 0..lines[i].len(){
                     if lines[i][j] == b' '{space=j;break;}
