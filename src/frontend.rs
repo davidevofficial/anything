@@ -41,6 +41,7 @@ impl Anything{
             app.settings.columns = vec![200, 950, 100, 150, 150]
         }
         app.items = main::load_cache();
+        app.status = format!("{} indexed files!", app.items.0.len());
         app.temp = app.settings.index_every_minutes.to_string();
         app
     }
@@ -675,7 +676,11 @@ impl eframe::App for Anything {
                 if let Some(completed_handle) = self.search_thread.take() {
                     match completed_handle.join() {
                         Ok(res) => {
-                            self.status = format!("{} Files/Directories found",res.len());
+                            let mut size = 0;
+                            for f in &self.items.0{
+                                size += f.size;
+                            }
+                            self.status = format!("{} Files/Directories found. Size of all searched files: {}",res.len(), main::size_to_pretty_string(size));
                             self.search_results = res;
                             self.search_thread = None;
                         }
