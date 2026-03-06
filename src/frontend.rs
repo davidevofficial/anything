@@ -190,7 +190,7 @@ impl Anything{
                 });
             })
             .body(| body| {
-                body.rows(24.0, self.search_results.len()+5, |mut row| {
+                body.rows(24.0, self.search_results.len()+25, |mut row| {
                     let row_index = row.index();
                     if row_index < self.search_results.len() && row_index < self.items.0.len(){
                         row.col(|ui| {
@@ -209,10 +209,11 @@ impl Anything{
                             ui.label(main::timestamp_to_string(self.search_results[row_index].last_modified_timestamp));
                         });
                     }else{
-                        // 20 empty rows
-                        for i in 0..20{
-                            row.col(|_ui|{});
-                        }
+                        row.col(|_ui|{});
+                        row.col(|_ui|{});
+                        row.col(|_ui|{});
+                        row.col(|_ui|{});
+                        row.col(|_ui|{});
                     }
                 });
             });
