@@ -50,6 +50,8 @@ pub struct Drive{
 fn string_to_fs(string: &str) -> SupportedFilesystems{
     match string{
         "Exfat" => {SupportedFilesystems::Exfat}
+        "Ntfs" => {SupportedFilesystems::Ntfs}
+        "Ext4" => {SupportedFilesystems::Ext4}
         _ => {SupportedFilesystems::default()}
     }
 }
