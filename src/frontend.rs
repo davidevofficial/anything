@@ -22,8 +22,8 @@ struct Anything{
     finished_indexing: bool,
     time_last_index: Option<std::time::Instant>,
     time_last_change: Option<std::time::Instant>,
-    search_thread: Option<std::thread::JoinHandle<Vec<main::File>>>,
-    search_results: Vec<main::File>,
+    search_thread: Option<std::thread::JoinHandle<Vec<usize>>>,
+    search_results: Vec<usize>,
     cancel_search: Option<std::sync::mpsc::Sender<u8>>,
     times_it_has_indexed: u32,
     not_first_frame: bool,
@@ -49,51 +49,49 @@ impl Anything{
         match self.settings.sort_in_use{
             main::Sort::DateCreatedAscending => {
                 self.items.0.sort_by(|a,b| a.create_timestamp.cmp(&b.create_timestamp));
-                self.search_results.sort_by(|a,b| a.create_timestamp.cmp(&b.create_timestamp));
 
             },
             main::Sort::DateCreatedDescending => {
                 self.items.0.sort_by(|b,a| a.create_timestamp.cmp(&b.create_timestamp));
-                self.search_results.sort_by(|b,a| a.create_timestamp.cmp(&b.create_timestamp));
+
             },
             main::Sort::DateModifiedAscending => {
                 self.items.0.sort_by(|a,b| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
-                self.search_results.sort_by(|a,b| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
+
             },
             main::Sort::DateModifiedDescending => {
                 self.items.0.sort_by(|b,a| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
-                self.search_results.sort_by(|b,a| a.last_modified_timestamp.cmp(&b.last_modified_timestamp));
+
             },
             main::Sort::SizeAscending => {
                 self.items.0.sort_by(|a,b| a.size.cmp(&b.size));
-                self.search_results.sort_by(|a,b| a.size.cmp(&b.size));
+
             },
             main::Sort::SizeDescending => {
                 self.items.0.sort_by(|b,a| a.size.cmp(&b.size));
-                self.search_results.sort_by(|b,a| a.size.cmp(&b.size));
+
             },
             main::Sort::PathAscending => {
                 self.items.0.sort_by(|a,b|
                     self.items.1[a.parent as usize].name.cmp(&self.items.1[b.parent as usize].name));
-                self.search_results.sort_by(|a,b|
-                    self.items.1[a.parent as usize].name.cmp(&self.items.1[b.parent as usize].name));
+
 
             },
             main::Sort::PathDescending => {
                 self.items.0.sort_by(|b,a|
                     self.items.1[a.parent as usize].name.cmp(&self.items.1[b.parent as usize].name));
-                self.search_results.sort_by(|b,a|
-                    self.items.1[a.parent as usize].name.cmp(&self.items.1[b.parent as usize].name));
+
             },
             main::Sort::FileAscending => {
                 self.items.0.sort_by(|a,b| a.name.cmp(&b.name));
-                self.search_results.sort_by(|a,b| a.name.cmp(&b.name));
+
             },
             main::Sort::FileDescending => {
                 self.items.0.sort_by(|b,a| a.name.cmp(&b.name));
-                self.search_results.sort_by(|b,a| a.name.cmp(&b.name));
+
             },
         }
+        self.time_last_change = Some(std::time::Instant::now());
     }
     fn render_table(&mut self, ui: &mut egui::Ui) {
 
@@ -193,20 +191,21 @@ impl Anything{
                 body.rows(24.0, self.search_results.len()+25, |mut row| {
                     let row_index = row.index();
                     if row_index < self.search_results.len() && row_index < self.items.0.len(){
+                        let i = self.search_results[row_index];
                         row.col(|ui| {
-                            ui.label(&self.search_results[row_index].name);
+                            ui.label(&self.items.0[i].name);
                         });
                         row.col(|ui| {
-                            ui.label(self.items.1[self.search_results[row_index].parent as usize].name.clone()+&self.search_results[row_index].name);
+                            ui.label(self.items.1[self.items.0[i].parent as usize].name.clone()+&self.items.0[i].name);
                         });
                         row.col(|ui| {
-                            ui.label(main::size_to_pretty_string(self.search_results[row_index].size));
+                            ui.label(main::size_to_pretty_string(self.items.0[i].size));
                         });
                         row.col(|ui| {
-                            ui.label(main::timestamp_to_string(self.search_results[row_index].create_timestamp));
+                            ui.label(main::timestamp_to_string(self.items.0[i].create_timestamp));
                         });
                         row.col(|ui| {
-                            ui.label(main::timestamp_to_string(self.search_results[row_index].last_modified_timestamp));
+                            ui.label(main::timestamp_to_string(self.items.0[i].last_modified_timestamp));
                         });
                     }else{
                         row.col(|_ui|{});
@@ -262,8 +261,8 @@ fn convert_string_to_predicates(searching_for: String)->Vec<(bool,bool,bool,Stri
         vec![(false,false,false,searching_for)]
     }
 }
-fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<main::File>{
-    let mut output: Vec<main::File> = Vec::new();
+fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<usize>{
+    let mut output: Vec<usize> = Vec::new();
     let pred = convert_string_to_predicates(searching_for.clone());
     let contains_slash = if searching_for.contains(&"/"){true}else{false};
     // dbg!(&pred);
@@ -340,7 +339,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                     }
                     let f: main::File = items[item].clone();
                     if cache_dir[f.parent as usize]{
-                        output.push(f);
+                        output.push(item);
                     }else{
                             let mut n;
                             let mut m = p.3.clone();
@@ -358,19 +357,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                                 // Not Starts With
                                 if p.1{
                                     if !n.starts_with(&m){
-                                        output.push(f);
+                                        output.push(item);
                                     }
                                 }
                                 // Not Ends With
                                 else if p.2{
                                     if !n.ends_with(&m){
-                                        output.push(f);
+                                        output.push(item);
                                     }
                                 }
                                 // Not contains
                                 else{
                                     if !n.contains(&m){
-                                        output.push(f);
+                                        output.push(item);
                                     }
                                 }
                             // Normal
@@ -378,19 +377,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                                 // Starts With
                                 if p.1{
                                     if n.starts_with(&m){
-                                        output.push(f);
+                                        output.push(item);
                                     }
                                 }
                                 // Ends With
                                 else if p.2{
                                     if n.ends_with(&m){
-                                        output.push(f);
+                                        output.push(item);
                                     }
                                 }
                                 // contains
                                 else{
                                     if n.contains(&m){
-                                        output.push(f);
+                                        output.push(item);
                                     }
                                 }
                             }
@@ -405,9 +404,9 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         Ok(1) => {return temp;}
                         _=>{}
                     }
-                    let f: main::File = output[o].clone();
+                    let f: main::File = items[output[o]].clone();
                     if cache_dir[f.parent as usize]{
-                        temp.push(f);
+                        temp.push(o);
                     }else{
                         let mut n;
                         let mut m = p.3.clone();
@@ -425,19 +424,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                             // Not Starts With
                             if p.1{
                                 if !n.starts_with(&m){
-                                    temp.push(f);
+                                    temp.push(o);
                                 }
                             }
                             // Not Ends With
                             else if p.2{
                                 if !n.ends_with(&m){
-                                    temp.push(f);
+                                    temp.push(o);
                                 }
                             }
                             // Not contains
                             else{
                                 if !n.contains(&m){
-                                    temp.push(f);
+                                    temp.push(o);
                                 }
                             }
                         // Normal
@@ -445,19 +444,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                             // Starts With
                             if p.1{
                                 if n.starts_with(&m){
-                                    temp.push(f);
+                                    temp.push(o);
                                 }
                             }
                             // Ends With
                             else if p.2{
                                 if n.ends_with(&m){
-                                    temp.push(f);
+                                    temp.push(o);
                                 }
                             }
                             // contains
                             else{
                                 if n.contains(&m){
-                                    temp.push(f);
+                                    temp.push(o);
                                 }
                             }
                         }
@@ -491,19 +490,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         // Not Starts With
                         if p.1{
                             if !n.starts_with(&m){
-                                output.push(f);
+                                output.push(item);
                             }
                         }
                         // Not Ends With
                         else if p.2{
                             if !n.ends_with(&m){
-                                output.push(f);
+                                output.push(item);
                             }
                         }
                         // Not contains
                         else{
                             if !n.contains(&m){
-                                output.push(f);
+                                output.push(item);
                             }
                         }
                     // Normal
@@ -511,19 +510,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         // Starts With
                         if p.1{
                             if n.starts_with(&m){
-                                output.push(f);
+                                output.push(item);
                             }
                         }
                         // Ends With
                         else if p.2{
                             if n.ends_with(&m){
-                                output.push(f);
+                                output.push(item);
                             }
                         }
                         // contains
                         else{
                             if n.contains(&m){
-                                output.push(f);
+                                output.push(item);
                             }
                         }
                     }
@@ -537,7 +536,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         Ok(1) => {return temp;}
                         _=>{}
                     }
-                    let f: main::File = output[o].clone();
+                    let f: main::File = items[output[o]].clone();
                     let mut n;
                     let mut m = p.3.clone();
                     n = directories[f.parent as usize].name.clone() + &f.name;
@@ -551,19 +550,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         // Not Starts With
                         if p.1{
                             if !n.starts_with(&m){
-                                temp.push(f);
+                                temp.push(o);
                             }
                         }
                         // Not Ends With
                         else if p.2{
                             if !n.ends_with(&m){
-                                temp.push(f);
+                                temp.push(o);
                             }
                         }
                         // Not contains
                         else{
                             if !n.contains(&m){
-                                temp.push(f);
+                                temp.push(o);
                             }
                         }
                     // Normal
@@ -571,19 +570,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         // Starts With
                         if p.1{
                             if n.starts_with(&m){
-                                temp.push(f);
+                                temp.push(o);
                             }
                         }
                         // Ends With
                         else if p.2{
                             if n.ends_with(&m){
-                                temp.push(f);
+                                temp.push(o);
                             }
                         }
                         // contains
                         else{
                             if n.contains(&m){
-                                temp.push(f);
+                                temp.push(o);
                             }
                         }
                     }
@@ -678,7 +677,7 @@ impl eframe::App for Anything {
                         Ok(res) => {
                             let mut size = 0;
                             for f in &res{
-                                size += f.size;
+                                size += &self.items.0[*f].size;
                             }
                             self.status = format!("{} Files/Directories found. Size of all searched files: {}",res.len(), main::size_to_pretty_string(size));
                             self.search_results = res;
