@@ -677,7 +677,7 @@ impl eframe::App for Anything {
                     match completed_handle.join() {
                         Ok(res) => {
                             let mut size = 0;
-                            for f in &self.search_results{
+                            for f in &res{
                                 size += f.size;
                             }
                             self.status = format!("{} Files/Directories found. Size of all searched files: {}",res.len(), main::size_to_pretty_string(size));
