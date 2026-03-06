@@ -531,12 +531,12 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                 //Later predicates only use from the previous results
                 let mut temp = Vec::new();
                 let p = pred[i].clone();
-                for o in 0..output.len(){
+                for o in &output{
                     match cancel_flag.try_recv(){
                         Ok(1) => {return temp;}
                         _=>{}
                     }
-                    let f: main::File = items[output[o]].clone();
+                    let f: main::File = items[output[*o]].clone();
                     let mut n;
                     let mut m = p.3.clone();
                     n = directories[f.parent as usize].name.clone() + &f.name;
@@ -550,19 +550,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         // Not Starts With
                         if p.1{
                             if !n.starts_with(&m){
-                                temp.push(o);
+                                temp.push(*o);
                             }
                         }
                         // Not Ends With
                         else if p.2{
                             if !n.ends_with(&m){
-                                temp.push(o);
+                                temp.push(*o);
                             }
                         }
                         // Not contains
                         else{
                             if !n.contains(&m){
-                                temp.push(o);
+                                temp.push(*o);
                             }
                         }
                     // Normal
@@ -570,19 +570,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         // Starts With
                         if p.1{
                             if n.starts_with(&m){
-                                temp.push(o);
+                                temp.push(*o);
                             }
                         }
                         // Ends With
                         else if p.2{
                             if n.ends_with(&m){
-                                temp.push(o);
+                                temp.push(*o);
                             }
                         }
                         // contains
                         else{
                             if n.contains(&m){
-                                temp.push(o);
+                                temp.push(*o);
                             }
                         }
                     }
