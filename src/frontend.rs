@@ -209,11 +209,10 @@ impl Anything{
                             ui.label(main::timestamp_to_string(self.search_results[row_index].last_modified_timestamp));
                         });
                     }else{
-                        row.col(|_ui|{});
-                        row.col(|_ui|{});
-                        row.col(|_ui|{});
-                        row.col(|_ui|{});
-                        row.col(|_ui|{});
+                        // 20 empty rows
+                        for i in 0..20{
+                            row.col(|_ui|{});
+                        }
                     }
                 });
             });
@@ -677,7 +676,7 @@ impl eframe::App for Anything {
                     match completed_handle.join() {
                         Ok(res) => {
                             let mut size = 0;
-                            for f in &self.items.0{
+                            for f in &self.search_results{
                                 size += f.size;
                             }
                             self.status = format!("{} Files/Directories found. Size of all searched files: {}",res.len(), main::size_to_pretty_string(size));
