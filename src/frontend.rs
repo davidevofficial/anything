@@ -266,136 +266,148 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
     let pred = convert_string_to_predicates(searching_for.clone());
     let contains_slash = if searching_for.contains(&"/"){true}else{false};
     // dbg!(&pred);
+    if pred.len() < 2{
+        let mut cache_dir = vec![false; directories.len()];
+        if settings.search_full_path && !contains_slash{
+            if pred.len() == 1{
+                let i = 0;
+                for j in 0..directories.len(){
+                    match cancel_flag.try_recv(){
+                        Ok(1) => {return output;}
+                        _=>{}
+                    }
+                    let p = pred[i].clone();
+                    let n = if settings.ignore_case{directories[j].name.clone().to_lowercase()}else{directories[j].name.clone()};
+                    let m = if settings.ignore_case{p.3.clone().to_lowercase()}else{p.3.clone()};
+                    // Negate
+                    if p.0{
+                        // Not Starts With
+                        if p.1{
+                            if !n.starts_with(&m){
+                                cache_dir[j] = true;
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                        // Not ends with
+                        else if p.2{
+                            cache_dir[j] = false;
+                        }
+                        // Not contains
+                        else{
+                            if !n.contains(&m){
+                                cache_dir[j] = true;
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                    // Normal
+                    }else{
+                        // Starts With
+                        if p.1{
+                            if n.starts_with(&m){
+                                cache_dir[j] = true;
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                        // Ends with
+                        else if p.2{
+                            cache_dir[j] = false;
+                        }
+                        // contains
+                        else{
+                            if n.contains(&m){
+                                cache_dir[j] = true;
+                            }else{
+                                cache_dir[j] = false;
+                            }
+                        }
+                    }
+                }
 
-    let mut cache_dir = vec![false; directories.len()];
-    if settings.search_full_path && !contains_slash{
-        for i in 0..pred.len(){
-            if i == 0{
-                for j in 0..directories.len(){
-                    match cancel_flag.try_recv(){
-                        Ok(1) => {return output;}
-                        _=>{}
-                    }
-                    let p = pred[i].clone();
-                    let n = if settings.ignore_case{directories[j].name.clone().to_lowercase()}else{directories[j].name.clone()};
-                    let m = if settings.ignore_case{p.3.clone().to_lowercase()}else{p.3.clone()};
-                    // Negate
-                    if p.0{
-                        // Not Starts With
-                        if p.1{
-                            if !n.starts_with(&m){
-                                cache_dir[j] = true;
-                            }else{
-                                cache_dir[j] = false;
-                            }
-                        }
-                        // Not ends with
-                        else if p.2{
-                            cache_dir[j] = false;
-                        }
-                        // Not contains
-                        else{
-                            if !n.contains(&m){
-                                cache_dir[j] = true;
-                            }else{
-                                cache_dir[j] = false;
-                            }
-                        }
-                    // Normal
-                    }else{
-                        // Starts With
-                        if p.1{
-                            if n.starts_with(&m){
-                                cache_dir[j] = true;
-                            }else{
-                                cache_dir[j] = false;
-                            }
-                        }
-                        // Ends with
-                        else if p.2{
-                            cache_dir[j] = false;
-                        }
-                        // contains
-                        else{
-                            if n.contains(&m){
-                                cache_dir[j] = true;
-                            }else{
-                                cache_dir[j] = false;
-                            }
-                        }
-                    }
-                }
-            }else{
-                for j in 0..directories.len(){
-                    match cancel_flag.try_recv(){
-                        Ok(1) => {return output;}
-                        _=>{}
-                    }
-                    let p = pred[i].clone();
-                    let n = if settings.ignore_case{directories[j].name.clone().to_lowercase()}else{directories[j].name.clone()};
-                    let m = if settings.ignore_case{p.3.clone().to_lowercase()}else{p.3.clone()};
-                    // Negate
-                    if p.0{
-                        // Not Starts With
-                        if p.1{
-                            if !n.starts_with(&m){
-                                cache_dir[j] = true;
-                            }else{
-                                cache_dir[j] = false;
-                            }
-                        }
-                        // Not ends with
-                        else if p.2{
-                            cache_dir[j] = false;
-                        }
-                        // Not contains
-                        else{
-                            if !n.contains(&m){
-                                cache_dir[j] = true;
-                            }else{
-                                cache_dir[j] = false;
-                            }
-                        }
-                    // Normal
-                    }else{
-                        // Starts With
-                        if p.1{
-                            if n.starts_with(&m){
-                                cache_dir[j] = true;
-                            }else{
-                                cache_dir[j] = false;
-                            }
-                        }
-                        // Ends with
-                        else if p.2{
-                            cache_dir[j] = false;
-                        }
-                        // contains
-                        else{
-                            if n.contains(&m){
-                                cache_dir[j] = true;
-                            }else{
-                                cache_dir[j] = false;
-                            }
-                        }
-                    }
-                }
             }
         }
-    }
-    for i in 0..pred.len(){
-        if i == 0{
-            //Initial pred build all the results
-            let p = pred[i].clone();
-            for item in 0..items.len(){
-                match cancel_flag.try_recv(){
-                    Ok(1) => {return output;}
-                    _=>{}
-                }
-                let f: main::File = items[item].clone();
-                if cache_dir[f.parent as usize]{
-                    output.push(f);
-                }else{
+        for i in 0..pred.len(){
+            if i == 0{
+                //Initial pred build all the results
+                let p = pred[i].clone();
+                for item in 0..items.len(){
+                    match cancel_flag.try_recv(){
+                        Ok(1) => {return output;}
+                        _=>{}
+                    }
+                    let f: main::File = items[item].clone();
+                    if cache_dir[f.parent as usize]{
+                        output.push(f);
+                    }else{
+                            let mut n;
+                            let mut m = p.3.clone();
+                            if settings.search_full_path && contains_slash {
+                                n = directories[f.parent as usize].name.clone() + &f.name;
+                            }else{
+                                n = f.name.clone();
+                            }
+                            if settings.ignore_case{
+                                n = n.to_lowercase();
+                                m = m.to_lowercase();
+                            }
+                            // Negate
+                            if p.0{
+                                // Not Starts With
+                                if p.1{
+                                    if !n.starts_with(&m){
+                                        output.push(f);
+                                    }
+                                }
+                                // Not Ends With
+                                else if p.2{
+                                    if !n.ends_with(&m){
+                                        output.push(f);
+                                    }
+                                }
+                                // Not contains
+                                else{
+                                    if !n.contains(&m){
+                                        output.push(f);
+                                    }
+                                }
+                            // Normal
+                            }else{
+                                // Starts With
+                                if p.1{
+                                    if n.starts_with(&m){
+                                        output.push(f);
+                                    }
+                                }
+                                // Ends With
+                                else if p.2{
+                                    if n.ends_with(&m){
+                                        output.push(f);
+                                    }
+                                }
+                                // contains
+                                else{
+                                    if n.contains(&m){
+                                        output.push(f);
+                                    }
+                                }
+                            }
+                        }
+                    }
+            } else {
+                //Later predicates only use from the previous results
+                let mut temp = Vec::new();
+                let p = pred[i].clone();
+                for o in 0..output.len(){
+                    match cancel_flag.try_recv(){
+                        Ok(1) => {return temp;}
+                        _=>{}
+                    }
+                    let f: main::File = output[o].clone();
+                    if cache_dir[f.parent as usize]{
+                        temp.push(f);
+                    }else{
                         let mut n;
                         let mut m = p.3.clone();
                         if settings.search_full_path && contains_slash {
@@ -412,19 +424,19 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                             // Not Starts With
                             if p.1{
                                 if !n.starts_with(&m){
-                                    output.push(f);
+                                    temp.push(f);
                                 }
                             }
                             // Not Ends With
                             else if p.2{
                                 if !n.ends_with(&m){
-                                    output.push(f);
+                                    temp.push(f);
                                 }
                             }
                             // Not contains
                             else{
                                 if !n.contains(&m){
-                                    output.push(f);
+                                    temp.push(f);
                                 }
                             }
                         // Normal
@@ -432,44 +444,103 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                             // Starts With
                             if p.1{
                                 if n.starts_with(&m){
-                                    output.push(f);
+                                    temp.push(f);
                                 }
                             }
                             // Ends With
                             else if p.2{
                                 if n.ends_with(&m){
-                                    output.push(f);
+                                    temp.push(f);
                                 }
                             }
                             // contains
                             else{
                                 if n.contains(&m){
-                                    output.push(f);
+                                    temp.push(f);
                                 }
                             }
                         }
                     }
                 }
-        } else {
-            //Later predicates only use from the previous results
-            let mut temp = Vec::new();
-            let p = pred[i].clone();
-            for o in 0..output.len(){
-                match cancel_flag.try_recv(){
-                    Ok(1) => {return temp;}
-                    _=>{}
-                }
-                let f: main::File = output[o].clone();
-                if cache_dir[f.parent as usize]{
-                    temp.push(f);
-                }else{
+                output = temp;
+            }
+        }
+        output
+    }else{
+        for i in 0..pred.len(){
+            if i == 0{
+                //Initial pred build all the results
+                let p = pred[i].clone();
+                for item in 0..items.len(){
+                    match cancel_flag.try_recv(){
+                        Ok(1) => {return output;}
+                        _=>{}
+                    }
+                    let f: main::File = items[item].clone();
+
                     let mut n;
                     let mut m = p.3.clone();
-                    if settings.search_full_path && contains_slash {
-                        n = directories[f.parent as usize].name.clone() + &f.name;
-                    }else{
-                        n = f.name.clone();
+                    n = directories[f.parent as usize].name.clone() + &f.name;
+                    if settings.ignore_case{
+                        n = n.to_lowercase();
+                        m = m.to_lowercase();
                     }
+                    // Negate
+                    if p.0{
+                        // Not Starts With
+                        if p.1{
+                            if !n.starts_with(&m){
+                                output.push(f);
+                            }
+                        }
+                        // Not Ends With
+                        else if p.2{
+                            if !n.ends_with(&m){
+                                output.push(f);
+                            }
+                        }
+                        // Not contains
+                        else{
+                            if !n.contains(&m){
+                                output.push(f);
+                            }
+                        }
+                    // Normal
+                    }else{
+                        // Starts With
+                        if p.1{
+                            if n.starts_with(&m){
+                                output.push(f);
+                            }
+                        }
+                        // Ends With
+                        else if p.2{
+                            if n.ends_with(&m){
+                                output.push(f);
+                            }
+                        }
+                        // contains
+                        else{
+                            if n.contains(&m){
+                                output.push(f);
+                            }
+                        }
+                    }
+                }
+            } else {
+                //Later predicates only use from the previous results
+                let mut temp = Vec::new();
+                let p = pred[i].clone();
+                for o in 0..output.len(){
+                    match cancel_flag.try_recv(){
+                        Ok(1) => {return temp;}
+                        _=>{}
+                    }
+                    let f: main::File = output[o].clone();
+                    let mut n;
+                    let mut m = p.3.clone();
+                    n = directories[f.parent as usize].name.clone() + &f.name;
+
                     if settings.ignore_case{
                         n = n.to_lowercase();
                         m = m.to_lowercase();
@@ -516,11 +587,12 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         }
                     }
                 }
+
+                output = temp;
             }
-            output = temp;
         }
+        output
     }
-    output
 }
 fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory>){
     let mut items = (Vec::new(), Vec::new());
