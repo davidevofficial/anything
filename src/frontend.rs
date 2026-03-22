@@ -645,6 +645,9 @@ impl eframe::App for Anything {
             } else {
                 ctx.set_theme(egui::Theme::Dark);
             }
+            if self.settings.pixels_per_point > 0.5 && self.settings.pixels_per_point < 100.0{
+                ctx.set_pixels_per_point(self.settings.pixels_per_point);
+            }
         }
         if self.time_last_change.is_some(){
             if self.cancel_search.is_some(){
@@ -864,6 +867,11 @@ impl eframe::App for Anything {
                         ui.horizontal(|ui|{
                             ui.checkbox(&mut new_settings.search_full_path, "Search Full Path");
                         });
+                        let slider = ui.add(egui::Slider::new(&mut new_settings.pixels_per_point, 0.5..=2.0).text("UI Scale"));
+                        // Only apply when the user releases the slider
+                        if slider.drag_stopped() || slider.lost_focus() {
+                            ctx.set_pixels_per_point(self.settings.pixels_per_point);
+                        }
 
                         ui.horizontal(|ui|{
                             if ui.add_sized(ui.available_size(), egui::Button::new("Ok")).clicked(){

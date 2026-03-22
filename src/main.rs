@@ -74,7 +74,8 @@ pub struct Settings{
     journal: bool,
     ignore_case: bool,
     search_full_path: bool,
-    light_mode: bool
+    light_mode: bool,
+    pixels_per_point: f32
 }
 fn string_to_sort(string: &str) -> Sort{
     match string{
@@ -327,6 +328,7 @@ pub fn save_settings(settings: Settings){
             6 => {writeln!(writer, "ignore_case:{:?}",settings.ignore_case).unwrap()}
             7 => {writeln!(writer, "search_full_path:{:?}",settings.search_full_path).unwrap()}
             8 => {writeln!(writer, "light_mode:{:?}",settings.light_mode).unwrap()}
+            9 => {writeln!(writer, "pixels_per_point:{:?}",settings.pixels_per_point).unwrap()}
             _ => {}
         }
 
@@ -370,7 +372,7 @@ pub fn load_settings() -> Settings{
     let mut columns = Vec::new();
     let mut search_full_path = true;
     let mut light_mode = true;
-
+    let mut pixels_per_point = 1.0;
     let mut i = 0;
     for line in reader.lines(){
         let line = line.unwrap();
@@ -389,7 +391,7 @@ pub fn load_settings() -> Settings{
                 13=>{ignore_case=attr=="true"}
                 15=>{search_full_path=attr=="true"}
                 17=>{light_mode=attr=="true"}
-
+                19=>{pixels_per_point=attr.parse::<f32>().expect("Line {i} is not a float")}
                 _ =>{}
             }
             i+= 1;
@@ -404,7 +406,8 @@ pub fn load_settings() -> Settings{
         journal,
         ignore_case,
         search_full_path,
-        light_mode
+        light_mode,
+        pixels_per_point
     }
 }
 pub fn save_cache(list_of_files: Vec<File>, list_of_directories: Vec<Directory>){
