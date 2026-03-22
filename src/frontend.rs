@@ -536,7 +536,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         Ok(1) => {return temp;}
                         _=>{}
                     }
-                    let f: main::File = items[output[*o]].clone();
+                    let f: main::File = items[*o].clone();
                     let mut n;
                     let mut m = p.3.clone();
                     n = directories[f.parent as usize].name.clone() + &f.name;
