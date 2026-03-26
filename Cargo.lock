@@ -927,6 +927,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
 
 [[package]]
+name = "enum-iterator"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fd242f399be1da0a5354aa462d57b4ab2b4ee0683cc552f7c007d2d12d36e94"
+dependencies = [
+ "enum-iterator-derive",
+]
+
+[[package]]
+name = "enum-iterator-derive"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "685adfa4d6f3d765a26bc5dbc936577de9abf756c1feeb3089b01dd395034842"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "enum-map"
 version = "2.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1032,6 +1052,16 @@ checksum = "8be9f3dfaaffdae2972880079a491a1a8bb7cbed0b8dd7a347f668b4150a3b93"
 dependencies = [
  "event-listener",
  "pin-project-lite",
+]
+
+[[package]]
+name = "fanotify-rs"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9525f3fd6f3ae518fdc1642663a93a7c8155e863699d203303b22c45ebbbfe8"
+dependencies = [
+ "enum-iterator",
+ "libc",
 ]
 
 [[package]]
@@ -2524,6 +2554,7 @@ dependencies = [
  "chrono",
  "eframe",
  "egui_extras",
+ "fanotify-rs",
 ]
 
 [[package]]
