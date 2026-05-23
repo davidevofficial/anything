@@ -1041,7 +1041,7 @@ pub fn start_frontend() -> Result<(), eframe::Error>{
     let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_inner_size([1600.0, 700.0])
-                .with_title("Anything")
+                .with_title("Anything - v2.2")
                 .with_icon(
                     // NOTE: Adding an icon is optional
                     eframe::icon_data::from_png_bytes(&include_bytes!("../icon.png")[..])
