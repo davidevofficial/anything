@@ -18,7 +18,7 @@ struct Anything{
     temp: String,
     temp_drives: Vec<main::Drive>,
     indexed: bool,
-    indexing_handle_thread: Option<std::thread::JoinHandle<(Vec<main::File>,Vec<main::Directory>)>>,
+    indexing_handle_thread: Option<std::thread::JoinHandle<(Vec<main::File>, Vec<main::Directory>, u32)>>,
     finished_indexing: bool,
     time_last_index: Option<std::time::Instant>,
     time_last_change: Option<std::time::Instant>,
@@ -594,8 +594,8 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
         output
     }
 }
-fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory>){
-    let mut items = (Vec::new(), Vec::new());
+fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory>, u32){
+    let mut items = (Vec::new(), Vec::new(), 0);
     let temp_drives = main::get_devices();
     for mut d in drives.clone(){
         let mut found = false;
@@ -616,21 +616,36 @@ fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory
             }
             SupportedFilesystems::Exfat => {
                 let idx = items.1.len() as u32;
-                let (mut files, mut dir) = main::exfat::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
-                items.0.append(&mut files);
-                items.1.append(&mut dir);
+                let result = main::exfat::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
+                if result.is_err(){
+                    items.2 += result.err().unwrap();
+                }else{
+                    let (mut files, mut dir) = result.unwrap();
+                    items.0.append(&mut files);
+                    items.1.append(&mut dir);
+                }
             }
             SupportedFilesystems::Ext4 => {
                 let idx = items.1.len() as u32;
-                let (mut files, mut dir) = main::ext4::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
-                items.0.append(&mut files);
-                items.1.append(&mut dir);
+                let result = main::ext4::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
+                if result.is_err(){
+                    items.2 += result.err().unwrap();
+                }else{
+                    let (mut files, mut dir) = result.unwrap();
+                    items.0.append(&mut files);
+                    items.1.append(&mut dir);
+                }
             }
             SupportedFilesystems::Ntfs => {
                 let idx = items.1.len() as u32;
-                let (mut files, mut dir) = main::ntfs::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
-                items.0.append(&mut files);
-                items.1.append(&mut dir);
+                let result = main::ntfs::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
+                if result.is_err(){
+                    items.2 += result.err().unwrap();
+                }else{
+                    let (mut files, mut dir) = result.unwrap();
+                    items.0.append(&mut files);
+                    items.1.append(&mut dir);
+                }
             }
         }
     }
@@ -712,10 +727,31 @@ impl eframe::App for Anything {
                         if let Some(completed_handle) = self.indexing_handle_thread.take() {
                             match completed_handle.join() {
                                 Ok(items) => {
-                                    self.items = items;
+                                    self.items.0 = items.0;
+                                    self.items.1 = items.1;
                                     self.sort_items();
-                                    self.status = format!("Indexing took: {:.3?}, Files found: {}"
-                                        ,self.time_last_index.unwrap().elapsed(),self.items.0.len());
+                                    let errors = items.2;
+                                    if errors == 0{
+                                        self.status = format!("Indexing took: {:.3?}, Files found: {}"
+                                            ,self.time_last_index.unwrap().elapsed(),self.items.0.len());
+                                    }else{
+                                        let no_permission_or_doesnt_exist = errors % 100;
+                                        let bad_magic = (errors - (errors % 100))/100;
+                                        match (no_permission_or_doesnt_exist, bad_magic){
+                                            (0,a) => {
+                                                self.status = format!("Indexing took: {:.3?}, Files found: {}.  {} selected drives' magic header does not match selected filesystem type "
+                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), bad_magic);
+                                            },
+                                            (a,0) => {
+                                                self.status = format!("Indexing took: {:.3?}, Files found: {}.  {} drives do not exist or you do not have permission to open them"
+                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), no_permission_or_doesnt_exist);
+                                            },
+                                            (a,b) => {
+                                                self.status = format!("Indexing took: {:.3?}, Files found: {}. {} drives do not exist or you do not have permission to open them. {} selected drives' magic header does not match selected filesystem type"
+                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), no_permission_or_doesnt_exist , bad_magic);
+                                            },
+                                        }
+                                    }
                                     self.finished_indexing = true;
                                     self.times_it_has_indexed += 1;
                                     self.time_last_change = Some(std::time::Instant::now());

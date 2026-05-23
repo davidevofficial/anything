@@ -85,11 +85,18 @@ struct ExFATDrive{
     ignored_dirs: Vec<String>
 }
 impl ExFATDrive{
-    fn new(device: String, mounted_at: String, ignored_dirs: Vec<String>, idx: u32)-> Self{
-        let mut file = fs::File::open(device).unwrap();
+    fn new(device: String, mounted_at: String, ignored_dirs: Vec<String>, idx: u32)-> Result<Self, u32>{
+        let file = fs::File::open(device);
+        if file.is_err(){
+            return Err(1);
+        }
+        let mut file = file.unwrap();
         let mut buffer = vec![0u8; 512];
         let _bytes_read = file.read(&mut buffer).unwrap();
-        assert_eq!(vec![69,88,70,65,84,32,32,32],buffer[3..11]); //ExFat flag
+        if vec![69,88,70,65,84,32,32,32] != buffer[3..11]{
+            return Err(100);
+        }
+        // assert_eq!(vec![69,88,70,65,84,32,32,32],buffer[3..11]); //ExFat flag
         assert_eq!([0x55, 0xAA], [buffer[510], buffer[511]], "Invalid boot signature"); //BootSignature flag
         // Bytes per sector
         let bytes_per_sector_shift = buffer[108] as u64;  // 2^(this number) = sector size
@@ -116,7 +123,7 @@ impl ExFATDrive{
                                             b[(i*4)as usize+2], b[(i*4)as usize+3]]));
         }
         let directories = Vec::new();
-        ExFATDrive {idx, directories, ignored_dirs,mounted_at,fat_table,file, volume_label: String::new(), bytes_per_sector, sectors_per_cluster, cluster_size, cluster_byte_heap_offset, root_dir_cluster, files: Vec::new()}
+        Ok(ExFATDrive {idx, directories, ignored_dirs,mounted_at,fat_table,file, volume_label: String::new(), bytes_per_sector, sectors_per_cluster, cluster_size, cluster_byte_heap_offset, root_dir_cluster, files: Vec::new()})
     }
     fn cluster_to_byte(self: &Self, cluster: u64)->u64{
         (cluster-2)*self.bytes_per_sector*self.sectors_per_cluster+self.cluster_byte_heap_offset
@@ -338,10 +345,14 @@ fn from_exfat_files_to_files(f: &ExFatFile, idx: u32)->File{
     }
 }
 
-pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>, idx: u32) -> (Vec<File>, Vec<Directory>) {
+pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>, idx: u32) -> Result<(Vec<File>, Vec<Directory>), u32> {
     let idx2 = idx;
     let idx = 0;
-    let mut drive = ExFATDrive::new(drive, mounted_at, ignored_dirs, idx).index_from_root();
+    let drive = ExFATDrive::new(drive, mounted_at, ignored_dirs, idx);
+    if drive.is_err(){
+        return Err(drive.err().unwrap());
+    }
+    let mut drive = drive.unwrap().index_from_root();
     for i in 0..drive.files.len(){
         if drive.files[i].is_dir{
             let name = drive.directories[drive.files[i].parent as usize].name.clone() + &drive.files[i].name + "/";
@@ -353,5 +364,5 @@ pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>, idx: 
     for f in drive.files{
         output.push(from_exfat_files_to_files(&f, idx2));
     }
-    (output,drive.directories)
+    Ok((output,drive.directories))
 }

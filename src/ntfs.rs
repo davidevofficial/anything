@@ -1,7 +1,7 @@
 use crate::Directory;
 use crate::File;
 use std::os::unix::fs::FileExt;
-
+use std::fs;
 // The following code decodes the NTFS filesystem by reading the MFT directly.
 //   https://flatcap.github.io/linux-ntfs/ntfs/index.html
 //   https://learn.microsoft.com/en-us/windows/win32/fileio/master-file-table
@@ -88,13 +88,20 @@ struct NtfsDrive {
 }
 
 impl NtfsDrive {
-    fn new(drive: String, mounted_at: String, ignored_dirs: Vec<String>) -> Self {
-        let file = std::fs::File::open(&drive).unwrap();
+    fn new(drive: String, mounted_at: String, ignored_dirs: Vec<String>) -> Result<Self, u32> {
+        let file = fs::File::open(drive);
+        if file.is_err(){
+            return Err(1);
+        }
+        let mut file = file.unwrap();
         let mut vbr = vec![0u8; 512];
         file.read_at(&mut vbr, 0).unwrap();
 
         // magic bytes "NTFS    "
-        assert_eq!(&vbr[3..11], b"NTFS    ", "Not a valid NTFS volume (bad OEM ID)");
+        if &vbr[3..11] == b"NTFS    "{
+             return Err(100);
+        }
+        // assert_eq!(&vbr[3..11], b"NTFS    ", "Not a valid NTFS volume (bad OEM ID)");
 
         let bytes_per_sector    = u16::from_le_bytes([vbr[11], vbr[12]]) as u64;
         let sectors_per_cluster = vbr[13] as u64;
@@ -118,7 +125,7 @@ impl NtfsDrive {
 
         let mft_runs = Self::get_data_runs(&mft_file_record, mft_record_size);
 
-        NtfsDrive {
+        Ok(NtfsDrive {
             file,
             directories: Vec::new(),
             volume_label: String::new(),
@@ -130,7 +137,7 @@ impl NtfsDrive {
             mft_runs,
             files: Vec::new(),
             ignored_dirs,
-        }
+        })
     }
 
     fn static_read_bytes(file: &std::fs::File, from: u64, size: u64) -> Vec<u8> {
@@ -488,12 +495,16 @@ pub fn index(
     mounted_at: String,
     ignored_dirs: Vec<String>,
     idx: u32,
-) -> (Vec<File>, Vec<Directory>) {
-    let drive = NtfsDrive::new(drive, mounted_at, ignored_dirs).index_from_root();
+) -> Result<(Vec<File>, Vec<Directory>), u32> {
+    let drive = NtfsDrive::new(drive, mounted_at, ignored_dirs);
+    if drive.is_err(){
+        return Err(drive.err().unwrap());
+    }
+    let mut drive = drive.unwrap().index_from_root();
 
     let files = drive.files.iter()
         .map(|f| from_ntfs_file_to_file(f, idx))
         .collect();
 
-    (files, drive.directories)
+    Ok((files, drive.directories))
 }

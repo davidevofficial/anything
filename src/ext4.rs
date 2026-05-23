@@ -32,8 +32,12 @@ struct Ext4Drive {
 }
 
 impl Ext4Drive {
-    fn new(drive: String, mounted_at: String, ignored_dirs: Vec<String>) -> Self {
-        let file = std::fs::File::open(&drive).unwrap();
+    fn new(drive: String, mounted_at: String, ignored_dirs: Vec<String>) -> Result<Self, u32> {
+        let file = fs::File::open(device);
+        if file.is_err(){
+            return Err(1);
+        }
+        let mut file = file.unwrap();
 
         // Read superblock (1024 bytes at offset 1024)
         let mut sb = vec![0u8; 1024];
@@ -41,7 +45,10 @@ impl Ext4Drive {
 
         // Verify magic
         let magic = u16::from_le_bytes([sb[56], sb[57]]);
-        assert_eq!(magic, 0xEF53, "Not a valid ext4 filesystem (bad magic)");
+        if magic != 0xEF53{
+            return Err(100);
+        }
+        // assert_eq!(magic, 0xEF53, "Not a valid ext4 filesystem (bad magic)");
 
         let block_size = 1024u64 << u32::from_le_bytes([sb[24], sb[25], sb[26], sb[27]]);
         let blocks_per_group = u32::from_le_bytes([sb[32], sb[33], sb[34], sb[35]]);
@@ -58,7 +65,7 @@ impl Ext4Drive {
         let label_end = label_bytes.iter().position(|&b| b == 0).unwrap_or(16);
         let volume_label = String::from_utf8_lossy(&label_bytes[..label_end]).to_string();
 
-        Ext4Drive {
+        Ok(Ext4Drive {
             file,
             directories: Vec::new(),
             volume_label,
@@ -75,7 +82,7 @@ impl Ext4Drive {
             block_size,
             desc_size,
             s_desc_size,
-        }
+        })
     }
 
     fn read_bytes(&self, from: u64, size: u64) -> Vec<u8> {
@@ -351,8 +358,12 @@ fn from_ext4_files_to_files(ext4_file: &Ext4File, idx: u32) -> File {
     }
 }
 
-pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>, idx: u32) -> (Vec<File>, Vec<Directory>) {
-    let mut drive = Ext4Drive::new(drive, mounted_at, ignored_dirs).index_from_root();
+pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>, idx: u32) -> Result<(Vec<File>, Vec<Directory>), u32> {
+    let drive = Ext4Drive::new(drive, mounted_at, ignored_dirs);
+    if drive.is_err(){
+        return Err(drive.err().unwrap());
+    }
+    let mut drive = drive.unwrap().index_from_root();
     for i in 0..drive.files.len() {
         if drive.files[i].is_dir {
             let name = drive.directories[drive.files[i].parent as usize].name.clone()
@@ -366,5 +377,5 @@ pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>, idx: 
     for f in drive.files {
         output.push(from_ext4_files_to_files(&f, idx));
     }
-    (output, drive.directories)
+    Ok((output, drive.directories))
 }
