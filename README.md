@@ -64,7 +64,7 @@ and write into the file (substitute /path/to/Anything.AppImage with the path to 
 ```
 [Desktop Entry]
 Comment=
-Exec=pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY '/path/to/Anything.AppImage'
+Exec=pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY APPIMAGE_EXTRACT_AND_RUN=1 '/path/to/Anything.AppImage'
 GenericName=file search GUI
 Icon=/path/to/icon.png
 Name=Anything
