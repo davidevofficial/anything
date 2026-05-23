@@ -6,13 +6,13 @@ use std::fs;
 //   https://flatcap.github.io/linux-ntfs/ntfs/index.html
 //   https://learn.microsoft.com/en-us/windows/win32/fileio/master-file-table
 
-const MFT_RECORD_MFT:       u64 = 0;
+const _MFT_RECORD_MFT:       u64 = 0;
 const MFT_RECORD_ROOT:      u64 = 5;
 const ATTR_STANDARD_INFORMATION: u32 = 0x10;
 const ATTR_FILE_NAME:            u32 = 0x30;
 const ATTR_DATA:                 u32 = 0x80;
-const ATTR_INDEX_ROOT:           u32 = 0x90;
-const ATTR_INDEX_ALLOCATION:     u32 = 0xA0;
+const _ATTR_INDEX_ROOT:           u32 = 0x90;
+const _ATTR_INDEX_ALLOCATION:     u32 = 0xA0;
 const ATTR_END:                  u32 = 0xFFFF_FFFF;
 const MFT_RECORD_IN_USE:    u16 = 0x0001;
 const MFT_RECORD_IS_DIR:    u16 = 0x0002;
@@ -93,7 +93,7 @@ impl NtfsDrive {
         if file.is_err(){
             return Err(1);
         }
-        let mut file = file.unwrap();
+        let file = file.unwrap();
         let mut vbr = vec![0u8; 512];
         file.read_at(&mut vbr, 0).unwrap();
 
@@ -191,7 +191,7 @@ impl NtfsDrive {
         vec![0u8; self.mft_record_size as usize]
     }
 
-    fn iter_attributes(record: &[u8], record_size: u64) -> Vec<(u32, usize)> {
+    fn iter_attributes(record: &[u8], _record_size: u64) -> Vec<(u32, usize)> {
         // attrs_offset at bytes 20-21
         let mut attrs = Vec::new();
         if record.len() < 22 { return attrs; }
@@ -392,7 +392,7 @@ impl NtfsDrive {
             });
         }
 
-        let mft_to_file_pos: std::collections::HashMap<u64, usize> = self.files.iter()
+        let _mft_to_file_pos: std::collections::HashMap<u64, usize> = self.files.iter()
             .enumerate()
             .map(|(i, f)| (f.mft_index, i))
             .collect();
@@ -500,7 +500,7 @@ pub fn index(
     if drive.is_err(){
         return Err(drive.err().unwrap());
     }
-    let mut drive = drive.unwrap().index_from_root();
+    let drive = drive.unwrap().index_from_root();
 
     let files = drive.files.iter()
         .map(|f| from_ntfs_file_to_file(f, idx))

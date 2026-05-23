@@ -740,15 +740,15 @@ impl eframe::App for Anything {
                                         match (no_permission_or_doesnt_exist, bad_magic){
                                             (0,a) => {
                                                 self.status = format!("Indexing took: {:.3?}, Files found: {}.  {} selected drives' magic header does not match selected filesystem type "
-                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), bad_magic);
+                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), a);
                                             },
                                             (a,0) => {
                                                 self.status = format!("Indexing took: {:.3?}, Files found: {}.  {} drives do not exist or you do not have permission to open them"
-                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), no_permission_or_doesnt_exist);
+                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), a);
                                             },
                                             (a,b) => {
                                                 self.status = format!("Indexing took: {:.3?}, Files found: {}. {} drives do not exist or you do not have permission to open them. {} selected drives' magic header does not match selected filesystem type"
-                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), no_permission_or_doesnt_exist , bad_magic);
+                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(),a,b);
                                             },
                                         }
                                     }
