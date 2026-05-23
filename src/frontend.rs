@@ -287,25 +287,25 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                     // Negate
                     if p.0{
                         // Not Starts With
-                        if p.1{
-                            if !n.starts_with(&m){
-                                cache_dir[j] = true;
-                            }else{
-                                cache_dir[j] = false;
-                            }
-                        }
-                        // Not ends with
-                        else if p.2{
-                            cache_dir[j] = false;
-                        }
-                        // Not contains
-                        else{
-                            if !n.contains(&m){
-                                cache_dir[j] = true;
-                            }else{
-                                cache_dir[j] = false;
-                            }
-                        }
+                        // if p.1{
+                        //     if !n.starts_with(&m){
+                        //         cache_dir[j] = true;
+                        //     }else{
+                        //         cache_dir[j] = false;
+                        //     }
+                        // }
+                        // // Not ends with
+                        // else if p.2{
+                        //     cache_dir[j] = false;
+                        // }
+                        // // Not contains
+                        // else{
+                        //     if !n.contains(&m){
+                        //         cache_dir[j] = true;
+                        //     }else{
+                        //         cache_dir[j] = false;
+                        //     }
+                        // }
                     // Normal
                     }else{
                         // Starts With
@@ -359,6 +359,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                             }
                             // Negate
                             if p.0{
+                                if settings.search_full_path{n = directories[f.parent as usize].name.clone() + &f.name;}
                                 // Not Starts With
                                 if p.1{
                                     if !n.starts_with(&m){
@@ -426,6 +427,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
                         }
                         // Negate
                         if p.0{
+                            if settings.search_full_path{n = directories[f.parent as usize].name.clone() + &f.name;}
                             // Not Starts With
                             if p.1{
                                 if !n.starts_with(&m){
