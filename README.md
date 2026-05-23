@@ -28,9 +28,25 @@ Searching throught the index was on par with other tools.
 
 # Installation
 
-Download pre-built binaries or the AppImage from the latest release
+## Pre-built
 
-or build it from source
+Download pre-built binaries or the AppImage from the latest release.
+
+Download FUSE if necessary:
+
+For Ubuntu 22.04 LTS
+```
+sudo apt install libfuse2   
+```
+For Ubuntu 24.04 LTS
+```
+sudo apt install libfuse2t64 
+```
+Ready to use! (see [how to use it](https://github.com/davidevofficial/anything?tab=readme-ov-file#how-to-use))
+
+If you find any errors check ["Troubleshoot errors"](https://github.com/davidevofficial/anything#troubleshoot-errors)
+
+## Build from source
 
 ```
 git clone https://github.com/davidevofficial/anything.git
@@ -55,12 +71,15 @@ Final File structure (after running for the first time) should look like this:
     └── settings.txt
 ```
 
+## Desktop Integration
+
 To create a way to double click and run the AppImage you can generate a .desktop file
 ```
 touch Anything.desktop
 ```
 
 and write into the file (substitute /path/to/Anything.AppImage with the path to the AppImage). it should look something like this:
+(remove "APPIMAGE_EXTRACT_AND_RUN=1" if FUSE is installed)
 ```
 [Desktop Entry]
 Comment=
