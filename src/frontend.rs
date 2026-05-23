@@ -668,7 +668,7 @@ impl eframe::App for Anything {
             if self.cancel_search.is_some(){
                 let _ = self.cancel_search.as_ref().unwrap().send(1);
             }
-            if self.time_last_change.unwrap().elapsed() > std::time::Duration::from_millis(300){
+            if self.time_last_change.unwrap().elapsed() > std::time::Duration::from_millis(300) && self.time_last_index.unwrap().elapsed() > std::time::Duration::from_millis(5000){
                 let (s, r) = std::sync::mpsc::channel::<u8>();
                 self.cancel_search = Some(s);
                 self.time_last_change = None;
