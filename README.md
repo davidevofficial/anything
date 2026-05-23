@@ -10,7 +10,7 @@ Simple program made in rust with a GUI to find **any** file/directory in a list 
 
 
 Supports:
-- Supported Filesystems: ExFAT...(planning to add Ext4 support and other filesystems)
+- Supported Filesystems: ExFAT, Ext4, NTFS
 - Indexing of drives
 - Ignoring entries
 - Sorting files
@@ -88,7 +88,7 @@ run with [sudo](https://github.com/davidevofficial/anything?tab=readme-ov-file#l
 
 The main interface should be familiar to you if you come from windows (everything).
 
-The bottom bar is a status bar, it tells you how many files it has found or if it is searching/indexing
+The bottom bar is a status bar, it tells you how many files it has found or if it is searching/indexing, errors, etc...
 
 At the centre is a table containing five columns. Click any button on the column header to change sort mode. columns are also resizable.
 
@@ -164,15 +164,29 @@ xyz yyy      -> Searches if file contains "xyz yyy"
 \*_xyz\ yyy  -> Ends with "xyz" AND contains "yyy"   
 ```
 
+# Troubleshoot Errors
+
+Q: WARNING: no drive selected
+A: Open the settings (top left) -> Disks -> + -> Select the right disk -> Select the FilesystemType (if unsure type "df -Th" in a console and find the drive) -> OK
+
+Q: I have selected a drive but nothing shows up
+A: You must also select the drive type (if unsure type "df -Th" in a console and find the drive)
+
+Q: WARNING: x selected drives' magic header does not match selected filesystem type
+A: means that one or more selected drives should have another filesystem type (if unsure type "df -Th" in a console and find the drive)
+
+Q: WARNING: x drives do not exist or you do not have permission to open them
+A: Means that one or more drives do not exist (incorrect path, drive was unmounted, bad drive) or that you ran the program without sudo and it attemps to open the drives with lacking permissions
+
+Anything else send me an email at davidevufficial@gmail.com or open an issue here on github.
+
 # Limitations
 
-The strength of Anything is also its biggest weakness, Anything requires sudo to index ( you can run the program without sudo to search and sort the files ) because it reads the /dev/sdXY drives directly.
+Anything requires sudo to index ( you can run the program without sudo to search and sort the files ) because it reads the /dev/sdXY drives directly.
 
 In my case sudo is perfectly acceptable (especially because I made the program myself so I know it is not dangerous to run with sudo)
 
-Another big problem is that support for each Filesystem is limited (it has to be added manually) for example it currently only support ExFAT filesystems
-
-Also the index gets written to cache.txt after quitting and my cache.txt with 1 million files is 175mb so make sure you have free space.
+Also the index gets written to "settings/cache.txt" after quitting the program, my "settings/cache.txt" with 1 million files is 175mb so make sure you have free space.
 
 # License
 
