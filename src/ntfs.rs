@@ -98,7 +98,7 @@ impl NtfsDrive {
         file.read_at(&mut vbr, 0).unwrap();
 
         // magic bytes "NTFS    "
-        if &vbr[3..11] == b"NTFS    "{
+        if &vbr[3..11] != b"NTFS    "{
              return Err(100);
         }
         // assert_eq!(&vbr[3..11], b"NTFS    ", "Not a valid NTFS volume (bad OEM ID)");
