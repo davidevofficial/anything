@@ -193,7 +193,8 @@ impl Anything{
                 });
             })
             .body(| body| {
-                body.rows(24.0, self.search_results.len()+25, |mut row| {
+                let n = if self.search_results.len() < 25{25} else{self.search_results.len() + 5};
+                body.rows(24.0, n, |mut row| {
                     let row_index = row.index();
                     if row_index < self.search_results.len() && row_index < self.items.0.len(){
                         let i = self.search_results[row_index];
