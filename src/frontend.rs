@@ -91,7 +91,7 @@ impl Anything{
 
             },
         }
-        self.time_last_change = Some(std::time::Instant::now());
+        // self.time_last_change = Some(std::time::Instant::now());
     }
     fn render_table(&mut self, ui: &mut egui::Ui) {
 
@@ -131,6 +131,7 @@ impl Anything{
                                 self.settings.sort_in_use = main::Sort::FileDescending;
                             }
                             self.sort_items();
+                            self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
                         };
                     });
                 });
@@ -143,6 +144,7 @@ impl Anything{
                                 self.settings.sort_in_use = main::Sort::PathDescending;
                             }
                             self.sort_items();
+                            self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
 
                         };
                     });
@@ -156,6 +158,7 @@ impl Anything{
                                 self.settings.sort_in_use = main::Sort::SizeDescending;
                             }
                             self.sort_items();
+                            self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
 
                         };
                     });
@@ -169,6 +172,7 @@ impl Anything{
                                 self.settings.sort_in_use = main::Sort::DateCreatedDescending;
                             }
                             self.sort_items();
+                            self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
 
                         };
                     });
@@ -182,6 +186,7 @@ impl Anything{
                                 self.settings.sort_in_use = main::Sort::DateModifiedDescending;
                             }
                             self.sort_items();
+                            self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
 
                         };
                     });
@@ -668,7 +673,7 @@ impl eframe::App for Anything {
             if self.cancel_search.is_some(){
                 let _ = self.cancel_search.as_ref().unwrap().send(1);
             }
-            if self.time_last_change.unwrap().elapsed() > std::time::Duration::from_millis(300) && self.time_last_index.unwrap().elapsed() > std::time::Duration::from_millis(5000){
+            if self.time_last_change.unwrap().elapsed() > std::time::Duration::from_millis(300) && self.time_last_index.unwrap().elapsed() > std::time::Duration::from_millis(3000){
                 let (s, r) = std::sync::mpsc::channel::<u8>();
                 self.cancel_search = Some(s);
                 self.time_last_change = None;
@@ -734,28 +739,27 @@ impl eframe::App for Anything {
                                     if errors == 0{
                                         self.status = format!("Indexing took: {:.3?}, Files found: {}"
                                             ,self.time_last_index.unwrap().elapsed(),self.items.0.len());
+                                        self.time_last_change = Some(std::time::Instant::now());
                                     }else{
                                         let no_permission_or_doesnt_exist = errors % 100;
                                         let bad_magic = (errors - (errors % 100))/100;
                                         match (no_permission_or_doesnt_exist, bad_magic){
                                             (0,a) => {
-                                                self.status = format!("Indexing took: {:.3?}, Files found: {}.  {} selected drives' magic header does not match selected filesystem type "
+                                                self.status = format!("Indexing took: {:.3?}, Files found: {}.\nWARNING: {} selected drives' magic header does not match selected filesystem type \nSearch something to continue"
                                                     ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), a);
                                             },
                                             (a,0) => {
-                                                self.status = format!("Indexing took: {:.3?}, Files found: {}.  {} drives do not exist or you do not have permission to open them"
+                                                self.status = format!("Indexing took: {:.3?}, Files found: {}.\nWARNING: {} drives do not exist or you do not have permission to open them\nSearch something to continue"
                                                     ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), a);
                                             },
                                             (a,b) => {
-                                                self.status = format!("Indexing took: {:.3?}, Files found: {}. {} drives do not exist or you do not have permission to open them. {} selected drives' magic header does not match selected filesystem type"
+                                                self.status = format!("Indexing took: {:.3?}, Files found: {}.\nWARNING: {} drives do not exist or you do not have permission to open them.\nWARNING: {} selected drives' magic header does not match selected filesystem type\nSearch something to continue "
                                                     ,self.time_last_index.unwrap().elapsed(),self.items.0.len(),a,b);
                                             },
                                         }
                                     }
                                     self.finished_indexing = true;
                                     self.times_it_has_indexed += 1;
-                                    self.time_last_change = Some(std::time::Instant::now());
-
                                 }
                                 Err(_) => {
                                     self.status = String::from("Indexing failed: probably because of lacking permission or a drive didn't exist");
