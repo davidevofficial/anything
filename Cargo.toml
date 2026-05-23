@@ -27,5 +27,6 @@ fanotify-rs = "0.3.1"
 
 # Cargo appimage flags
 [package.metadata.appimage]
-icon = "icon.png"
+icon = "./icon.png"
+runtime = "runtime-x86_64"
 auto_link = true
