@@ -33,11 +33,11 @@ struct Ext4Drive {
 
 impl Ext4Drive {
     fn new(drive: String, mounted_at: String, ignored_dirs: Vec<String>) -> Result<Self, u32> {
-        let file = fs::File::open(device);
+        let file = std::fs::File::open(drive);
         if file.is_err(){
             return Err(1);
         }
-        let mut file = file.unwrap();
+        let file = file.unwrap();
 
         // Read superblock (1024 bytes at offset 1024)
         let mut sb = vec![0u8; 1024];
