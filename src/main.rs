@@ -274,7 +274,7 @@ pub fn load_drives() -> Vec<Drive>{
             }else if i == 1{
                 fs=string_to_fs(attr)
             }else if i == 2{
-                let att = attr.rsplit_once(' ');
+                let att = attr.split_once(' ');
                 mounted_at=att.unwrap().0.to_string();
             }
             i+= 1;
