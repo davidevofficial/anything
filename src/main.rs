@@ -2,6 +2,7 @@ mod exfat;
 mod ext4;
 mod ntfs;
 mod frontend;
+mod backend;
 use chrono;
 
 pub fn size_to_pretty_string(size: u64) -> String{
@@ -45,14 +46,6 @@ pub struct Drive{
     drive: String,
     mounted_at: String,
     ignored_dirs: Vec<String>
-}
-fn string_to_fs(string: &str) -> SupportedFilesystems{
-    match string{
-        "Exfat" => {SupportedFilesystems::Exfat}
-        "Ntfs" => {SupportedFilesystems::Ntfs}
-        "Ext4" => {SupportedFilesystems::Ext4}
-        _ => {SupportedFilesystems::default()}
-    }
 }
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum FilesystemType{
@@ -262,9 +255,6 @@ pub fn load_drives() -> Vec<Drive>{
     let reader = std::io::BufReader::new(file);
     for line in reader.lines(){
         let line = line.unwrap();
-        let mut drive = String::new();
-        let mut mounted_at = String::new();
-        let mut fs = SupportedFilesystems::None;
         let mut ignored_dirs = Vec::new();
         let mut i = 0;
         for attr in line.splitn(3,' '){
@@ -371,7 +361,11 @@ pub fn load_settings() -> Settings{
         match attr[0] {
             "columns" => {
                 for c in attr[1].split(','){
-                    columns.push(c[1..].parse::<u16>().expect(&format!("main.rs:230, {} NaN",c)).clone());
+                    if !c.ends_with(']'){
+                        columns.push(c[1..].parse::<u16>().expect(&format!("main.rs:362, {} NaN",c)).clone());
+                    }else{
+                        columns.push(c[1..c.len()-1].parse::<u16>().expect(&format!("main.rs:362, {} NaN",c)).clone());
+                    }
                 }
             }
             "sort_in_use" => {sort_in_use=string_to_sort(attr[1])}
@@ -413,7 +407,7 @@ pub fn save_cache(list_of_files: Vec<File>, list_of_directories: Vec<Directory>)
             let app_dir = appimage_path.parent().unwrap();
             let settings_dir = app_dir.join("settings");
             let path = settings_dir.join("cache.txt");
-            std::fs::OpenOptions::new().write(true).truncate(true).open(path).unwrap()
+            std::fs::OpenOptions::new().create(true).write(true).truncate(true).open(path).unwrap()
         }
     };
     let mut writer = BufWriter::new(file);

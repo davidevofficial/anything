@@ -1,7 +1,7 @@
 use eframe::egui::{self, FontId, TextWrapMode};
 use eframe;
 use std::thread;
-use crate::{self as main, SupportedFilesystems, save_cache, save_drives, save_settings};
+use crate::{self as main, backend, save_cache, save_drives, save_settings};
 
 #[derive(Debug, Default)]
 struct Anything{
@@ -667,7 +667,7 @@ impl eframe::App for Anything {
             if self.status != String::from("Searching..."){
                 self.indexed = true;
                 let d_clone = self.drives.clone();
-                self.indexing_handle_thread = Some(thread::spawn(||index_drives(d_clone)));
+                self.indexing_handle_thread = Some(thread::spawn(|| backend::index_drives(d_clone)));
                 self.finished_indexing = false;
                 self.time_last_index = Some(std::time::Instant::now());
             }
@@ -801,7 +801,7 @@ impl eframe::App for Anything {
                 if ui.button("🔄").clicked(){
                     self.indexed = true;
                     let d_clone = self.drives.clone();
-                    self.indexing_handle_thread = Some(thread::spawn(||index_drives(d_clone)));
+                    self.indexing_handle_thread = Some(thread::spawn(|| backend::index_drives(d_clone)));
                     self.finished_indexing = false;
                     self.time_last_index = Some(std::time::Instant::now());
                 }
