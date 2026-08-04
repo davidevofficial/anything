@@ -344,7 +344,18 @@ fn from_exfat_files_to_files(f: &ExFatFile, idx: u32)->File{
         last_modified_timestamp: f.last_modified_timestamp
     }
 }
-
+pub fn is_drive_valid(drive: String) -> bool{
+    let file = fs::File::open(drive);
+    if file.is_err(){return false}
+    let mut file = file.unwrap();
+    let mut buffer = vec![0u8; 512];
+    let _bytes_read = file.read(&mut buffer).unwrap();
+    if vec![69,88,70,65,84,32,32,32] == buffer[3..11]{
+        true
+    }else{
+        false
+    }
+}
 pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>, idx: u32) -> Result<(Vec<File>, Vec<Directory>), u32> {
     let idx2 = idx;
     let idx = 0;

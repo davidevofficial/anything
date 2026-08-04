@@ -489,7 +489,20 @@ fn from_ntfs_file_to_file(f: &NtfsFile, idx: u32) -> File {
         last_modified_timestamp: f.last_modified_timestamp,
     }
 }
+pub fn is_drive_valid(drive: String) -> bool{
+    let file = fs::File::open(drive);
+    if file.is_err(){return false}
+    let file = file.unwrap();
+    let mut vbr = vec![0u8; 512];
+    file.read_at(&mut vbr, 0).unwrap();
 
+    // magic bytes "NTFS    "
+    if &vbr[3..11] == b"NTFS    "{
+        true
+    }else{
+        false
+    }
+}
 pub fn index(
     drive: String,
     mounted_at: String,

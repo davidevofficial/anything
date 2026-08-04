@@ -357,7 +357,20 @@ fn from_ext4_files_to_files(ext4_file: &Ext4File, idx: u32) -> File {
         last_modified_timestamp: ext4_file.last_modified_timestamp,
     }
 }
-
+pub fn is_drive_valid(drive: String) -> bool{
+    use std::fs;
+    let file = fs::File::open(drive);
+    if file.is_err(){return false}
+    let file = file.unwrap();
+    let mut sb = vec![0u8; 1024];
+    file.read_at(&mut sb, EXT4_SUPERBLOCK_OFFSET).unwrap();
+    let magic = u16::from_le_bytes([sb[56], sb[57]]);
+    if magic == 0xEF53{
+        true
+    }else{
+        false
+    }
+}
 pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>, idx: u32) -> Result<(Vec<File>, Vec<Directory>), u32> {
     let drive = Ext4Drive::new(drive, mounted_at, ignored_dirs);
     if drive.is_err(){
