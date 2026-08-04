@@ -94,7 +94,7 @@ impl Anything{
         // self.time_last_change = Some(std::time::Instant::now());
     }
     fn render_table(&mut self, ui: &mut egui::Ui) {
-
+        const WH: &str = "                                                                      ";
         ui.style_mut().wrap_mode = Some(TextWrapMode::Truncate);
         ui.style_mut().override_font_id = Some(FontId{size:16.0,family:egui::FontFamily::Proportional});
         let mut arrow = vec![String::new(); 5];
@@ -180,7 +180,7 @@ impl Anything{
                 header.col(|ui| {
                     ui.horizontal(|ui|{
                         if ui.add_sized(ui.available_size(), egui::Button::new(
-                            format!("Path {}                                                                                                                                                                                                                    ",&arrow[4]))).clicked(){
+                            format!("Path {} {} {}{}{}{}{}",&arrow[4], WH, WH, WH, WH, WH, WH))).clicked(){
                             if self.settings.sort_in_use == main::Sort::PathDescending{
                                 self.settings.sort_in_use = main::Sort::PathAscending;
                             }else{
