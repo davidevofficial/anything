@@ -269,6 +269,8 @@ fn convert_string_to_predicates(searching_for: String)->Vec<(bool,bool,bool,Stri
     }
 }
 fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<usize>{
+    backend::search(items, directories, settings, searching_for, cancel_flag);
+    todo!();
     let mut output: Vec<usize> = Vec::new();
     let pred = convert_string_to_predicates(searching_for.clone());
     let contains_slash = if searching_for.contains(&"/"){true}else{false};
@@ -635,7 +637,7 @@ impl eframe::App for Anything {
                 let settings_clone = self.settings.clone();
                 let searching_for = self.searching_for.clone();
                 let cancel_flag = r;
-                self.search_thread = Some(thread::spawn(move ||search(slice.to_vec(),slice_2.to_vec(), settings_clone, searching_for, cancel_flag)));
+                self.search_thread = Some(thread::spawn(move || backend::search(slice.to_vec(),slice_2.to_vec(), settings_clone, searching_for, cancel_flag)));
 
                 self.status = String::from("Searching...");
             }
