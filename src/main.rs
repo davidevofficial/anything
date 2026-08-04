@@ -316,24 +316,16 @@ pub fn save_settings(settings: Settings){
     };
 
     let mut writer = BufWriter::new(file);
-    // Write new lines, overwriting everything
-    for i in 0..10{
-        match i{
-            0 => {writeln!(writer, "columns:{:?}",settings.columns).unwrap()}
-            1 => {writeln!(writer, "sort_in_use:{:?}",settings.sort_in_use).unwrap()}
-            2 => {writeln!(writer, "index_on_startup:{:?}",settings.index_on_startup).unwrap()}
-            3 => {writeln!(writer, "index_every_minutes:{:?}",settings.index_every_minutes).unwrap()}
-            4 => {writeln!(writer, "instant_search:{:?}",settings.instant_search).unwrap()}
-            5 => {writeln!(writer, "journal:{:?}",settings.journal).unwrap()}
-            6 => {writeln!(writer, "ignore_case:{:?}",settings.ignore_case).unwrap()}
-            7 => {writeln!(writer, "search_full_path:{:?}",settings.search_full_path).unwrap()}
-            8 => {writeln!(writer, "light_mode:{:?}",settings.light_mode).unwrap()}
-            9 => {writeln!(writer, "pixels_per_point:{:?}",settings.pixels_per_point).unwrap()}
-            _ => {}
-        }
-
-
-    }
+    writeln!(writer, "columns:{:?}",settings.columns).unwrap();
+    writeln!(writer, "sort_in_use:{:?}",settings.sort_in_use).unwrap();
+    writeln!(writer, "index_on_startup:{:?}",settings.index_on_startup).unwrap();
+    writeln!(writer, "index_every_minutes:{:?}",settings.index_every_minutes).unwrap();
+    writeln!(writer, "instant_search:{:?}",settings.instant_search).unwrap();
+    writeln!(writer, "journal:{:?}",settings.journal).unwrap();
+    writeln!(writer, "ignore_case:{:?}",settings.ignore_case).unwrap();
+    writeln!(writer, "search_full_path:{:?}",settings.search_full_path).unwrap();
+    writeln!(writer, "light_mode:{:?}",settings.light_mode).unwrap();
+    writeln!(writer, "pixels_per_point:{:?}",settings.pixels_per_point).unwrap();
     writer.flush().unwrap();
 }
 pub fn load_settings() -> Settings{
@@ -373,28 +365,26 @@ pub fn load_settings() -> Settings{
     let mut search_full_path = true;
     let mut light_mode = true;
     let mut pixels_per_point = 1.0;
-    let mut i = 0;
+
     for line in reader.lines(){
         let line = line.unwrap();
-        for attr in line.split(':'){
-            match i{
-                1=>{
-                    for c in attr[0..attr.len()-1].split(','){
-                        columns.push(c[1..].parse::<u16>().expect(&format!("main.rs:230, {} NaN",c)).clone());
-                    }
+        let attr: Vec<&str> = line.split(':').collect();
+        match attr[0] {
+            "columns" => {
+                for c in attr[1].split(','){
+                    columns.push(c[1..].parse::<u16>().expect(&format!("main.rs:230, {} NaN",c)).clone());
                 }
-                3=>{sort_in_use=string_to_sort(attr)}
-                5=>{index_on_startup=attr=="true"}
-                7=>{index_every_minutes=attr.parse::<u32>().expect("Line {i} is not a number")}
-                9=>{instant_search=attr=="true"}
-                11=>{journal=attr=="true"}
-                13=>{ignore_case=attr=="true"}
-                15=>{search_full_path=attr=="true"}
-                17=>{light_mode=attr=="true"}
-                19=>{pixels_per_point=attr.parse::<f32>().expect("Line {i} is not a float")}
-                _ =>{}
             }
-            i+= 1;
+            "sort_in_use" => {sort_in_use=string_to_sort(attr[1])}
+            "index_on_startup" => {index_on_startup=attr[1]=="true"}
+            "index_every_minutes"=>{index_every_minutes=attr[1].parse::<u32>().expect("Line {i} is not a number")}
+            "instant_search"=>{instant_search=attr[1]=="true"}
+            "journal"=>{journal=attr[1]=="true"}
+            "ignore_case"=>{ignore_case=attr[1]=="true"}
+            "search_full_path"=>{search_full_path=attr[1]=="true"}
+            "light_mode"=>{light_mode=attr[1]=="true"}
+            "pixels_per_point"=>{pixels_per_point=attr[1].parse::<f32>().expect("Line {i} is not a float")}
+            _ =>{}
         }
     }
     Settings{
