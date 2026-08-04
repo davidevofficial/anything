@@ -99,24 +99,24 @@ impl Anything{
         ui.style_mut().override_font_id = Some(FontId{size:16.0,family:egui::FontFamily::Proportional});
         let mut arrow = vec![String::new(); 5];
         match self.settings.sort_in_use{
-            main::Sort::DateCreatedAscending => {arrow[3] = String::from("v")},
-            main::Sort::DateCreatedDescending => {arrow[3] = String::from("^")},
-            main::Sort::DateModifiedAscending => {arrow[4] = String::from("v")},
-            main::Sort::DateModifiedDescending => {arrow[4] = String::from("^")},
-            main::Sort::SizeAscending => {arrow[2] = String::from("v")},
-            main::Sort::SizeDescending => {arrow[2] = String::from("^")},
-            main::Sort::PathAscending => {arrow[1] = String::from("v")},
-            main::Sort::PathDescending => {arrow[1] = String::from("^")},
+            main::Sort::DateCreatedAscending => {arrow[2] = String::from("v")},
+            main::Sort::DateCreatedDescending => {arrow[2] = String::from("^")},
+            main::Sort::DateModifiedAscending => {arrow[3] = String::from("v")},
+            main::Sort::DateModifiedDescending => {arrow[3] = String::from("^")},
+            main::Sort::SizeAscending => {arrow[1] = String::from("v")},
+            main::Sort::SizeDescending => {arrow[1] = String::from("^")},
+            main::Sort::PathAscending => {arrow[4] = String::from("v")},
+            main::Sort::PathDescending => {arrow[4] = String::from("^")},
             main::Sort::FileAscending => {arrow[0] = String::from("v")},
             main::Sort::FileDescending => {arrow[0] = String::from("^")},
         }
         use egui_extras::{TableBuilder, Column};
         TableBuilder::new(ui)
             .column(Column::initial(self.settings.columns[0] as f32).resizable(true))
-            .column(Column::initial(self.settings.columns[1] as f32).resizable(true))
             .column(Column::initial(self.settings.columns[2] as f32).resizable(true))
             .column(Column::initial(self.settings.columns[3] as f32).resizable(true))
             .column(Column::initial(self.settings.columns[4] as f32).resizable(true))
+            .column(Column::remainder().resizable(true))
             .striped(true)
             .animate_scrolling(false)
             .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
@@ -137,21 +137,7 @@ impl Anything{
                 });
                 header.col(|ui| {
                     ui.horizontal(|ui|{
-                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Path {}",&arrow[1]))).clicked(){
-                            if self.settings.sort_in_use == main::Sort::PathDescending{
-                                self.settings.sort_in_use = main::Sort::PathAscending;
-                            }else{
-                                self.settings.sort_in_use = main::Sort::PathDescending;
-                            }
-                            self.sort_items();
-                            self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
-
-                        };
-                    });
-                });
-                header.col(|ui| {
-                    ui.horizontal(|ui|{
-                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Size {}",&arrow[2]))).clicked(){
+                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Size {}",&arrow[1]))).clicked(){
                             if self.settings.sort_in_use == main::Sort::SizeDescending{
                                 self.settings.sort_in_use = main::Sort::SizeAscending;
                             }else{
@@ -165,7 +151,7 @@ impl Anything{
                 });
                 header.col(|ui| {
                     ui.horizontal(|ui|{
-                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Date Created {}",&arrow[3]))).clicked(){
+                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Date Created {}",&arrow[2]))).clicked(){
                             if self.settings.sort_in_use == main::Sort::DateCreatedDescending{
                                 self.settings.sort_in_use = main::Sort::DateCreatedAscending;
                             }else{
@@ -179,11 +165,26 @@ impl Anything{
                 });
                 header.col(|ui| {
                     ui.horizontal(|ui|{
-                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Date Modified {}",&arrow[4]))).clicked(){
+                        if ui.add_sized(ui.available_size(), egui::Button::new(format!("Date Modified {}",&arrow[3]))).clicked(){
                             if self.settings.sort_in_use == main::Sort::DateModifiedDescending{
                                 self.settings.sort_in_use = main::Sort::DateModifiedAscending;
                             }else{
                                 self.settings.sort_in_use = main::Sort::DateModifiedDescending;
+                            }
+                            self.sort_items();
+                            self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
+
+                        };
+                    });
+                });
+                header.col(|ui| {
+                    ui.horizontal(|ui|{
+                        if ui.add_sized(ui.available_size(), egui::Button::new(
+                            format!("Path {}                                                                                                                                                                                                                    ",&arrow[4]))).clicked(){
+                            if self.settings.sort_in_use == main::Sort::PathDescending{
+                                self.settings.sort_in_use = main::Sort::PathAscending;
+                            }else{
+                                self.settings.sort_in_use = main::Sort::PathDescending;
                             }
                             self.sort_items();
                             self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
@@ -202,9 +203,6 @@ impl Anything{
                             ui.label(&self.items.0[i].name);
                         });
                         row.col(|ui| {
-                            ui.label(self.items.1[self.items.0[i].parent as usize].name.clone()+&self.items.0[i].name);
-                        });
-                        row.col(|ui| {
                             ui.label(main::size_to_pretty_string(self.items.0[i].size));
                         });
                         row.col(|ui| {
@@ -212,6 +210,9 @@ impl Anything{
                         });
                         row.col(|ui| {
                             ui.label(main::timestamp_to_string(self.items.0[i].last_modified_timestamp));
+                        });
+                        row.col(|ui| {
+                            ui.label(self.items.1[self.items.0[i].parent as usize].name.clone()+&self.items.0[i].name);
                         });
                     }else{
                         row.col(|_ui|{});
