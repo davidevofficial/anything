@@ -602,63 +602,7 @@ fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: m
         output
     }
 }
-fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory>, u32){
-    let mut items = (Vec::new(), Vec::new(), 0);
-    let temp_drives = main::get_devices();
-    for mut d in drives.clone(){
-        let mut found = false;
-        for t in temp_drives.clone(){
-            if t.mounted_at == d.mounted_at{
-                found = true;
-                if d.drive != t.drive{
-                    d.drive = t.drive;
-                }
-            }
-        }
-        if !found{
-            continue;
-        }
-        match d.fs{
-            SupportedFilesystems::None =>{
 
-            }
-            SupportedFilesystems::Exfat => {
-                let idx = items.1.len() as u32;
-                let result = main::exfat::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
-                if result.is_err(){
-                    items.2 += result.err().unwrap();
-                }else{
-                    let (mut files, mut dir) = result.unwrap();
-                    items.0.append(&mut files);
-                    items.1.append(&mut dir);
-                }
-            }
-            SupportedFilesystems::Ext4 => {
-                let idx = items.1.len() as u32;
-                let result = main::ext4::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
-                if result.is_err(){
-                    items.2 += result.err().unwrap();
-                }else{
-                    let (mut files, mut dir) = result.unwrap();
-                    items.0.append(&mut files);
-                    items.1.append(&mut dir);
-                }
-            }
-            SupportedFilesystems::Ntfs => {
-                let idx = items.1.len() as u32;
-                let result = main::ntfs::index(d.drive, d.mounted_at, d.ignored_dirs, idx);
-                if result.is_err(){
-                    items.2 += result.err().unwrap();
-                }else{
-                    let (mut files, mut dir) = result.unwrap();
-                    items.0.append(&mut files);
-                    items.1.append(&mut dir);
-                }
-            }
-        }
-    }
-    items
-}
 impl eframe::App for Anything {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if !self.not_first_frame{
@@ -939,22 +883,6 @@ impl eframe::App for Anything {
                             ui.horizontal(|ui|{
                                 ui.label(drives[i].drive.clone()+"    ");
                                 ui.label(drives[i].mounted_at.clone()+"    ");
-
-                                // let before = drives[i].fs;
-                                egui::ComboBox::new(drives[i].drive.clone(),"")
-                                    .selected_text(format!("{:?}", drives[i].fs))
-                                    .show_ui(ui, |ui| {
-                                        ui.style_mut().override_font_id = Some(FontId{size:24.0,family:egui::FontFamily::Monospace});
-                                        ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::None, "Ignore");
-                                        ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::Exfat, "Exfat");
-                                        ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::Ext4, "Ext4");
-                                        ui.selectable_value(&mut drives[i].fs, SupportedFilesystems::Ntfs, "NTFS");
-
-
-                                    }
-                                );
-                                // if drives[i].fs != before {}
-
                                 if ui.button("-").clicked(){
                                     drives.remove(i);
                                     removing = true;

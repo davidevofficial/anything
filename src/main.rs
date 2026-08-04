@@ -42,7 +42,6 @@ pub struct File{
 }
 #[derive(Debug, Default, Clone)]
 pub struct Drive{
-    fs: SupportedFilesystems,
     drive: String,
     mounted_at: String,
     ignored_dirs: Vec<String>
@@ -56,7 +55,7 @@ fn string_to_fs(string: &str) -> SupportedFilesystems{
     }
 }
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub enum SupportedFilesystems{
+pub enum FilesystemType{
     #[default]
     None,
     Exfat,
@@ -130,7 +129,7 @@ pub fn get_devices()->Vec<Drive>{
                 let drive = drive.to_vec();
                 let drive = String::from_utf8(drive).unwrap();
                 let mounted_at = String::from_utf8(mounted_at.to_vec()).unwrap();
-                drives.push(Drive{fs: SupportedFilesystems::default(),drive,mounted_at,ignored_dirs:vec![]});
+                drives.push(Drive{drive,mounted_at,ignored_dirs:vec![]});
             }
         }
     }
@@ -229,8 +228,8 @@ pub fn save_drives(drives: Vec<Drive>){
             }
         }
         s = format!("{s}]");
-        writeln!(writer, "{} {:?} {} {}",
-            drive.drive, drive.fs, drive.mounted_at, s).unwrap();
+        writeln!(writer, "{} {} {}",
+            drive.drive, drive.mounted_at, s).unwrap();
 
     }
     writer.flush().unwrap();
