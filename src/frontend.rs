@@ -448,15 +448,25 @@ impl eframe::App for Anything {
                         ui.style_mut().override_font_id = Some(FontId{size:20.0,family:egui::FontFamily::Monospace});
                         ui.label("Search Options:");
                         ui.label("Simple search:\n xyz zyx = contains \"xyz zyx\"");
-                        ui.label("Complex search:\n \\ xyz = contains \"xyz\" (The space is necessary)");
+                        ui.label("Complex search:\n \\(filter)xyz = contains \"xyz\" and uses a filter\n \\!(filter)xyz = contains \"xyz\" and uses a negative filter");
                         ui.label("\\!xyz = doesn't contain \"xyz\"");
-                        ui.label("\\*_xyz = ends with \"xyz\"");
-                        ui.label("\\_*xyz = starts with \"xyz\"");
-                        ui.label("\\!_*xyz = doesn't ends with \"xyz\"");
-                        ui.label("\\!*_xyz = doesn't starts with \"xyz\"");
-                        ui.label("\\ xyz\\ zyx =  Contains both \"xyz\" AND \"zyx\"");
+                        ui.label("\\(*.xyz) = ends with \".xyz\"");
+                        ui.label("\\(xyz*) = starts with \"xyz\"");
+                        ui.label("\\(s > 123kb) = bigger than 123kb");
+                        ui.label("\\(c > yyyy/mm/dd h:m:s) = created after a certain date");
+                        ui.label("\\(m > yyyy/mm/dd h:m:s) = modified after a certain date");
+                        ui.label("\\(folder) = Is folder");
+                        ui.label("\\(file) = Is file");
+                        ui.label("\\xyz\\zyx =  Contains both \"xyz\" AND \"zyx\"");
+                        ui.label("\\xyz\\!zyx =  Contains \"xyz\" and doesn't contain \"zyx\"");
+                        ui.label("\\!(size < 1mb)file_name = Contains \"file_name\" and bigger than 1mb");
+                        // ui.separator();
+                        // ui.label("Example:");
+                        // ui.label("\\(size < 1mb)\\!(/media/1*)\\(created > 2025/1/1)\\!.cache\\home");
+                        // ui.label("Smaller than a mb, doesn't starts with /media/1,
+                        //     created after 2025/1/1, doesn't contain .cache and contains home");
                         ui.separator();
-                        ui.label("For more information see:");
+                        ui.label("For more information or examples see:");
                         ui.hyperlink_to("Anything on github:\nhttps://github.com/davidevofficial/anything", "https://github.com/davidevofficial/anything")
                     });
                 });
