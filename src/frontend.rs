@@ -14,7 +14,7 @@ struct Anything{
     lsblk_window: bool,
     status: String,
     no_disk_popup: bool,
-    info_popup: bool,
+    edit_dir_popup: (bool,usize),
     temp: String,
     temp_drives: Vec<main::Drive>,
     indexed: bool,
@@ -28,6 +28,7 @@ struct Anything{
     times_it_has_indexed: u32,
     time_to_index: f32,
     not_first_frame: bool,
+    typing_name: String,
 }
 
 impl Anything{
@@ -383,21 +384,41 @@ impl eframe::App for Anything {
                     });
         });
         // Edit popup explanation
-        let mut open_info = self.info_popup;
-        egui::Window::new("Information!")
-            .open(&mut open_info)
+        let mut open_info = self.edit_dir_popup;
+        let mut s = String::new();
+        if self.drives.len() != 0{
+            s = format!("Editing ignored directories for drive {}", self.drives[open_info.1].drive);
+        }
+        egui::Window::new(s)
+            .open(&mut open_info.0)
             .title_bar(true)
-            .resizable(false)
+            .resizable(true)
             .default_width(250.0)
             .show(ctx, |ui| {
                 ui.style_mut().override_font_id = Some(FontId{size:24.0,family:egui::FontFamily::Monospace});
-                    ui.vertical(|ui|{
-                        ui.label("Information: Check the readme on github on how to edit ignored directories!");
-                        if ui.button("OK").clicked(){
-                            self.info_popup = false;
-                        }
-                    });
-        });
+                ui.vertical(|ui|{
+                    let mut drives = self.drives.clone();
+                    if drives[open_info.1].ignored_dirs.len() == 0{
+                        ui.label("Start adding ignored directories!");
+                    }
+                    for (j, ignored) in self.drives[open_info.1].ignored_dirs.iter().enumerate(){
+                        ui.horizontal(|ui|{
+                            ui.label(ignored);
+                            if ui.button("-" ).clicked(){
+                                drives[open_info.1].ignored_dirs.remove(j);
+                            }
+                        });
+                    }
+                    if ui.text_edit_singleline(&mut self.typing_name).lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)){
+                        drives[open_info.1].ignored_dirs.push(self.typing_name.clone());
+                        self.typing_name = String::new()
+                    }
+                    self.drives = drives;
+                    if ui.button("OK").clicked(){
+                        self.edit_dir_popup = (false,0);
+                    }
+                });
+            });
 
 
 
@@ -531,15 +552,15 @@ impl eframe::App for Anything {
                         for i in 0..drives.len(){
                             let mut removing = false;
                             ui.horizontal(|ui|{
-                                ui.label(drives[i].drive.clone()+"    ");
-                                ui.label(drives[i].mounted_at.clone()+"    ");
-                                if ui.button("-").clicked(){
-                                    drives.remove(i);
-                                    removing = true;
-                                }
-                                if ui.button("\u{270F}").clicked(){
-                                    self.info_popup = true;
-                                }
+                                    ui.label(drives[i].drive.clone()+"              ");
+                                    ui.label(drives[i].mounted_at.clone()+"");
+                                    if ui.button("-").clicked(){
+                                        drives.remove(i);
+                                        removing = true;
+                                    }
+                                    if ui.button("\u{270F}").clicked(){
+                                        self.edit_dir_popup = (true,i);
+                                    }
                             });
                             if removing{
                                 break;
