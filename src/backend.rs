@@ -14,8 +14,440 @@ fn check_drive_filesystem_type(drive: String) -> FilesystemType{
     }
 }
 
-pub fn search(){
-    todo!()
+/// String must be of type yyyy-mm-dd hour:minute:second
+/// Converts from user-legible string to epoch for file searching
+fn date_to_epoch(s: &str) -> i64{
+    use chrono::NaiveDateTime;
+    use chrono::NaiveDate;
+    //  dbg!(dt);
+    for i in 0..15{
+        match i {
+            0 => {
+                let dt = NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S");
+                if dt.is_ok(){
+                    return dt.unwrap().and_utc().timestamp()
+                    }
+                }
+            1 => {
+                let dt = NaiveDateTime::parse_from_str(s, "%Y/%m/%d %H:%M:%S");                if dt.is_ok(){
+                    return dt.unwrap().and_utc().timestamp()
+                    }
+                }
+            2 => {
+                let dt = NaiveDateTime::parse_from_str(s, "%Y:%m:%d %H:%M:%S");
+                if dt.is_ok(){
+                    return dt.unwrap().and_utc().timestamp()
+                    }
+                }
+            3 => {
+                let dt = NaiveDateTime::parse_from_str(s, "%Y:%m:%d %H-%M-%S");
+                if dt.is_ok(){
+                    return dt.unwrap().and_utc().timestamp()
+                    }
+                }
+            4 => {
+                let dt = NaiveDate::parse_from_str(s, "%Y/%m/%d");
+                if dt.is_ok(){
+                    return dt.unwrap().to_epoch_days() as i64 * 86400
+                }
+            }
+            5 => {
+                let dt = NaiveDate::parse_from_str(s, "%Y:%m:%d");if dt.is_ok(){
+                return dt.unwrap().to_epoch_days() as i64 * 86400
+                }
+            }
+            6 => {
+                let dt = NaiveDate::parse_from_str(s, "%Y-%m-%d");
+                if dt.is_ok(){
+                    return dt.unwrap().to_epoch_days() as i64 * 86400
+                }
+            }
+            7 => {
+                let dt = NaiveDateTime::parse_from_str(s, "%Y-%d-%m %H:%M:%S");
+                if dt.is_ok(){
+                    return dt.unwrap().and_utc().timestamp()
+                    }
+                }
+            8 => {
+                let dt = NaiveDateTime::parse_from_str(s, "%Y/%d/%m %H:%M:%S");
+                if dt.is_ok(){
+                    return dt.unwrap().and_utc().timestamp()
+                    }
+                }
+            9 => {
+                let dt = NaiveDateTime::parse_from_str(s, "%Y:%d:%m %H:%M:%S");
+                if dt.is_ok(){
+                    return dt.unwrap().and_utc().timestamp()
+                    }
+                }
+            10 => {
+                let dt = NaiveDate::parse_from_str(s, "%Y/%d/%m");
+                if dt.is_ok(){
+                    return dt.unwrap().to_epoch_days() as i64 * 86400
+                }
+            }
+            11 => {
+                let dt = NaiveDate::parse_from_str(s, "%Y:%d:%m");
+                if dt.is_ok(){
+                    return dt.unwrap().to_epoch_days() as i64 * 86400
+                }
+            }
+            12 => {
+                let dt = NaiveDate::parse_from_str(s, "%Y-%d-%m");
+                if dt.is_ok(){
+                    return dt.unwrap().to_epoch_days() as i64 * 86400
+                }
+            }
+            _ => {return 0;}
+        }
+    }
+    return 0;
+}
+
+/// From human readable to bytes (u64) lowercase or uppercase doesn't matter
+/// 123b = 123, 123 = 123
+/// 123k = 123.000, 123Kb = 123.000
+/// 7m = 7.000.000, 7Mb = 7.000.000
+/// 7g = 7.000.000.000, 7Gb = 7.000.000.000
+/// 1t = 1.000.000.000.000, 1Tb = 1.000.000.000.000
+fn string_to_size_in_bytes(s: &str) -> u64{
+    let s = s.to_lowercase();
+    // Terabyte = 1_000_000_000_000 Bytes
+    if s.ends_with('t'){
+        return s[0..s.len()-1].parse::<u64>().unwrap() * 1_000_000_000_000;
+    }else if s.ends_with("tb"){
+        return s[0..s.len()-2].parse::<u64>().unwrap() * 1_000_000_000_000;
+    }
+    // Gigabyte = 1_000_000_000 Bytes
+    if s.ends_with('g'){
+        return s[0..s.len()-1].parse::<u64>().unwrap() * 1_000_000_000;
+    }else if s.ends_with("gb"){
+        return s[0..s.len()-2].parse::<u64>().unwrap() * 1_000_000_000;
+    }
+    // Megabyte = 1_000_000 Bytes
+    if s.ends_with('m'){
+        return s[0..s.len()-1].parse::<u64>().unwrap() * 1_000_000;
+    }else if s.ends_with("mb"){
+        return s[0..s.len()-2].parse::<u64>().unwrap() * 1_000_000;
+    }
+    // Kilobytes = 1000 Bytes
+    if s.ends_with('k'){
+        return s[0..s.len()-1].parse::<u64>().unwrap() * 1_000;
+    }else if s.ends_with("kb"){
+        return s[0..s.len()-2].parse::<u64>().unwrap() * 1_000;
+    }
+    // Bytes = 1 Byte
+    if s.ends_with('b'){
+        return s[0..s.len()-1].parse::<u64>().unwrap();
+    }
+    return s.parse::<u64>().unwrap();
+
+}
+
+#[derive(Debug, Clone, Default)]
+enum FilterType{
+    BiggerThan(u64),
+    SmallerThan(u64),
+    IsFolder,
+    IsFile,
+    OlderThan(i64),
+    NewerThan(i64),
+    ModifiedAfter(i64),
+    ModifiedBefore(i64),
+    StartsWith(String),
+    EndsWith(String),
+    #[default]
+    None
+}
+
+impl FilterType{
+    fn from_string(s: &str) -> FilterType{
+        let s = s.to_lowercase();
+        let s = s.trim();
+        // Starts or Ends with (*)
+        if s.contains('*'){
+            // Divides in two strings, if the first is empty then it means that it is *_ otherwise _*
+            let v: Vec<&str> = s.splitn(2, '*').collect();
+            if v[0].is_empty(){
+                return FilterType::EndsWith(v[1].to_string());
+            }else{
+                return FilterType::StartsWith(v[2].to_string())
+            }
+        }
+        // folder/file
+        if s.contains("folder"){return FilterType::IsFolder}
+        if s.contains("file"){return FilterType::IsFile}
+        // other filters
+        // bigger than
+        if s.contains('>'){
+            let mut parts: Vec<&str> = s.splitn(2, '>').collect();
+            parts[0] = parts[0].trim();
+            parts[1] = parts[1].trim();
+            match parts[0]{
+                "s" | "size" => {
+                    let size = string_to_size_in_bytes(parts[1]);
+                    return FilterType::BiggerThan(size);
+                }
+                "c" | "creation" => {
+                    let date = date_to_epoch(parts[1]);
+                    return FilterType::OlderThan(date);
+                }
+                "m" | "modified" => {
+                    let date = date_to_epoch(parts[1]);
+                    return FilterType::ModifiedAfter(date);
+                }
+                _ => {}
+            }
+        }
+        // smaller than
+        if s.contains('<'){
+            let mut parts: Vec<&str> = s.splitn(2, '<').collect();
+            parts[0] = parts[0].trim();
+            parts[1] = parts[1].trim();
+            match parts[0]{
+                "s" | "size" => {
+                    let size = string_to_size_in_bytes(parts[1]);
+                    return FilterType::SmallerThan(size);
+                }
+                "c" | "creation" => {
+                    let date = date_to_epoch(parts[1]);
+                    return FilterType::NewerThan(date);
+                }
+                "m" | "modified" => {
+                    let date = date_to_epoch(parts[1]);
+                    return FilterType::ModifiedBefore(date);
+                }
+                _ => {}
+            }
+        }
+
+        FilterType::None
+    }
+}
+
+#[derive(Debug, Clone)]
+struct SearchFilter{
+    search_string: String,
+    negation: bool,
+    filter: FilterType
+}
+impl SearchFilter{
+    fn default(search_string: String) -> SearchFilter{
+        return SearchFilter { search_string, negation: false, filter: FilterType::default() }
+    }
+}
+
+fn string_to_predicates(s: String) -> Vec<SearchFilter>{
+    let mut output = Vec::new();
+    if !s.contains('\\'){
+        let f = SearchFilter::default(s);
+        output.push(f);
+    }else{
+        let predicates: Vec<&str> = s.split('\\').collect();
+        for p in predicates{
+            if p.is_empty(){
+                continue;
+            }
+            let mut negation = false;
+            if p.starts_with('!'){
+                negation = true;
+            }
+            if p.contains('(') && p.contains(')'){
+                let mut left_parent_idx = 1;
+                if negation{
+                    left_parent_idx = 2;
+                }
+                let parts: Vec<&str> = p[left_parent_idx..].splitn(2,')').collect();
+                let filter = FilterType::from_string(parts[0]);
+                let search_string = parts[1].to_string();
+                output.push(SearchFilter { search_string, negation, filter })
+            }else{
+                if negation{
+                    let s = &p[1..];
+                    output.push( SearchFilter { search_string: s.to_string(), negation, filter: FilterType::None })
+                }else{
+                    let s = p;
+                    output.push( SearchFilter { search_string: s.to_string(), negation, filter: FilterType::None })
+                }
+            }
+        }
+    }
+    output
+}
+fn filter_match(item: &main::File, predicate: SearchFilter) -> bool{
+    if !predicate.negation{
+        match predicate.filter{
+            FilterType::IsFolder => {return item.is_dir && item.name.contains(predicate.search_string.as_str())}
+            FilterType::IsFile => {return !item.is_dir && item.name.contains(predicate.search_string.as_str())}
+            FilterType::BiggerThan(x) => {return item.size > x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::SmallerThan(x) => {return item.size < x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::EndsWith(y) => {return item.name.ends_with(y.as_str()) && item.name.contains(predicate.search_string.as_str())}
+            FilterType::StartsWith(y) => {return item.name.starts_with(y.as_str()) && item.name.contains(predicate.search_string.as_str())}
+            FilterType::ModifiedAfter(x) => {return item.last_modified_timestamp > x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::ModifiedBefore(x) => {return item.last_modified_timestamp < x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::NewerThan(x) => {return item.create_timestamp > x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::OlderThan(x) => {return item.create_timestamp < x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::None => {return item.name.contains(predicate.search_string.as_str())}
+        }
+    }else{
+        match predicate.filter{
+            FilterType::IsFolder => {return !item.is_dir && item.name.contains(predicate.search_string.as_str())}
+            FilterType::IsFile => {return item.is_dir && item.name.contains(predicate.search_string.as_str())}
+            FilterType::BiggerThan(x) => {return item.size < x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::SmallerThan(x) => {return item.size > x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::EndsWith(y) => {return !item.name.ends_with(y.as_str()) && item.name.contains(predicate.search_string.as_str())}
+            FilterType::StartsWith(y) => {return !item.name.starts_with(y.as_str()) && item.name.contains(predicate.search_string.as_str())}
+            FilterType::ModifiedAfter(x) => {return item.last_modified_timestamp < x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::ModifiedBefore(x) => {return item.last_modified_timestamp > x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::NewerThan(x) => {return item.create_timestamp < x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::OlderThan(x) => {return item.create_timestamp > x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::None => {return !item.name.contains(predicate.search_string.as_str())}
+        }
+    }
+}
+pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<usize>{
+    let mut output: Vec<usize> = Vec::new();
+    let predicates = string_to_predicates(searching_for.clone());
+    let contains_slash = if searching_for.contains(&"/"){true}else{false};
+    dbg!(predicates.clone());
+    if predicates.len() == 1{
+        if settings.search_full_path && !contains_slash{
+            // perhaps the only case where I can create a temp_cache_dir: Vec<usize>
+            for j in 0..items.len(){
+                match cancel_flag.try_recv(){
+                    Ok(1) => {return output;}
+                    _=>{}
+                }
+                let mut search_filter = predicates[0].clone();
+                let mut item = items[j].clone();
+                if settings.ignore_case{
+                    search_filter.search_string = search_filter.search_string.to_lowercase();
+                    item.name = directories[item.parent as usize].name.clone() + &item.name;
+                    item.name = item.name.to_lowercase();
+                }
+                if filter_match(&item, search_filter.clone()){
+                    output.push(j);
+                }
+            }
+        } else if !settings.search_full_path{
+            for j in 0..items.len(){
+                match cancel_flag.try_recv(){
+                    Ok(1) => {return output;}
+                    _=>{}
+                }
+                let mut search_filter = predicates[0].clone();
+                let mut item = items[j].clone();
+                if settings.ignore_case{
+                    search_filter.search_string = search_filter.search_string.to_lowercase();
+                    item.name = item.name.to_lowercase();
+                }
+                if filter_match(&item, search_filter.clone()){
+                    output.push(j);
+                }
+            }
+        } else if settings.search_full_path && contains_slash{
+            for j in 0..items.len(){
+                match cancel_flag.try_recv(){
+                    Ok(1) => {return output;}
+                    _=>{}
+                }
+                let mut search_filter = predicates[0].clone();
+                let mut item = items[j].clone();
+                if settings.ignore_case{
+                    search_filter.search_string = search_filter.search_string.to_lowercase();
+                    item.name = directories[item.parent as usize].name.clone() + &item.name;
+                    item.name = item.name.to_lowercase();
+                }
+                if filter_match(&item, search_filter.clone()){
+                    output.push(j);
+                }
+            }
+        }
+    } else if predicates.len() > 1{
+        // todo!();
+        for i in 0..predicates.len(){
+            if i == 0{
+                //start caching
+                if settings.search_full_path && !contains_slash{
+                    // perhaps the only case where I can create a temp_cache_dir: Vec<usize>
+                    for j in 0..items.len(){
+                        match cancel_flag.try_recv(){
+                            Ok(1) => {return output;}
+                            _=>{}
+                        }
+                        let mut search_filter = predicates[0].clone();
+                        let mut item = items[j].clone();
+                        if settings.ignore_case{
+                            search_filter.search_string = search_filter.search_string.to_lowercase();
+                            item.name = directories[item.parent as usize].name.clone() + &item.name;
+                            item.name = item.name.to_lowercase();
+                        }
+                        if filter_match(&item, search_filter.clone()){
+                            output.push(j);
+                        }
+                    }
+                } else if !settings.search_full_path{
+                    for j in 0..items.len(){
+                        match cancel_flag.try_recv(){
+                            Ok(1) => {return output;}
+                            _=>{}
+                        }
+                        let mut search_filter = predicates[0].clone();
+                        let mut item = items[j].clone();
+                        if settings.ignore_case{
+                            search_filter.search_string = search_filter.search_string.to_lowercase();
+                            item.name = item.name.to_lowercase();
+                        }
+                        if filter_match(&item, search_filter.clone()){
+                            output.push(j);
+                        }
+                    }
+                } else if settings.search_full_path && contains_slash{
+                    for j in 0..items.len(){
+                        match cancel_flag.try_recv(){
+                            Ok(1) => {return output;}
+                            _=>{}
+                        }
+                        let mut search_filter = predicates[0].clone();
+                        let mut item = items[j].clone();
+                        if settings.ignore_case{
+                            search_filter.search_string = search_filter.search_string.to_lowercase();
+                            item.name = directories[item.parent as usize].name.clone() + &item.name;
+                            item.name = item.name.to_lowercase();
+                        }
+                        if filter_match(&item, search_filter.clone()){
+                            output.push(j);
+                        }
+                    }
+                }
+            } else{
+                //use cache
+                let mut temp: Vec<usize> = Vec::new();
+                for o in &output{
+                    match cancel_flag.try_recv(){
+                        Ok(1) => {return temp;}
+                        _=>{}
+                    }
+                    let mut search_filter = predicates[i].clone();
+                    let mut item: main::File = items[*o].clone();
+                    if settings.ignore_case{
+                        search_filter.search_string = search_filter.search_string.to_lowercase();
+                        if settings.search_full_path{
+                            item.name = directories[item.parent as usize].name.clone() + &item.name;
+                        }
+                        item.name = item.name.to_lowercase();
+                    }
+                    if filter_match(&item, search_filter.clone()){
+                        temp.push(*o);
+                    }
+                }
+                output = temp;
+            }
+
+        }
+    }
+
+    output
 }
 
 pub fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory>, u32){
