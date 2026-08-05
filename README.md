@@ -142,62 +142,101 @@ Search full path: If it searches the full path or just the file name
 
 ## Disks
 
-Click the + button to start adding disks: that will open the lsblk window (select all drive you want to add)
+Click the "+" button to start adding disks: that will open the lsblk window (select all drive you want to add), Click the "-" button to remove any drive
 
-Click the - button to remove any drive, click the combobox that says ExFAT to change the filesystem type of the disk (it doesn't support automatic filesystem type recognition)
+Click the ✏️ (pencil) button to edit ignored directories: to get started type inside of the square any path and press enter (for example you could type /.tmp, /root, /bin or /media/path_where/external_usb/mounted_at/.Trash-1000), to remove an ignored path just click the "-" button, when you are done press OK
 
-To modify the ignored directories of a disk open: drives.txt and type inside the square brackets
-
-Example:
-```
-/dev/sdc1 /media/1 Exfat [/media/1/.Trash-1000, /media/1/useless_directory, /media/1/top_secret_data]
-```
-it is important that each entry is separated by a comma AND a space (", ").
 
 ## Search Options
 
-There are some options you can use to enhance your search to the next level, each starts with the backslash ("\\")
+There are some options you can use to enhance your search to the next level, here is a simple guide on how to use those options!
 
-Each "\\" defines the start of a predicate (if no \\ checks if file contains what you typed).
+### Simple Search
 
-Predicates contain options:
+Just type anything in the top bar to start searching, if you type "xyz zyx" it searches all files which contain exactly "xyz zyx"
 
-\\! : Negation
+Example:
+```
+"important documents" -> Finds all elements that contain that substring
+What gets searched: /home/important documents/ or /.tmp/important documents.pdf
+What doesn't get searched: /home/important/documents  (will not find files or folders which include both or either word if it doesn't exactly contain that substring) 
+```
 
-\\  : Normal (the space is necessary)
+### Complex Search
 
-\\_*: Starts with
+How to type a complex search query, the following are all valid:
 
-\\*_: Ends with
+\\(filter)
 
+\\!(filter)
+
+\\(filter)substring
+
+\\!(filter)substring
+
+Example:
+```
+\!(filter)substring -> The ! (negation) is optional, matches all files/folders that contain substring and gets filtered by the filter
+\(size < 50kb)very_important_file -> finds all files which contain "very_important_file" and smaller than 50 kilobytes 
+```
+
+### Filters
+
+Here is a list of all filters:
+```
+*(spaces inside the parenthesis don't matter)
+*(After the parenthesis you can optionally add a substring)
+
+\(size > x) or \(s > x) -> Size bigger than x
+\(size < x) or \(s < x) -> Size bigger than x
+Where x is either a number (like 1024) or a number followed by a prefix such as: b, k, m, g, t or b, kb, mb, gb, tb (case insensitive)
+
+\(modified > DATE) or \(m > DATE) -> Modified after DATE
+\(modified < DATE) or \(m < DATE) -> Modified before DATE
+\(creation > DATE) or \(c > DATE) -> Created after DATE
+\(creation < DATE) or \(c < DATE) -> Created before DATE
+Where DATE is a date which can be written in different ways:
+YYYY-mm-dd H:M:S
+YYYY/mm/dd H:M:S
+YYYY:mm:dd H:M:S
+YYYY:mm:dd H-M-S
+YYYY:mm:dd
+YYYY/mm/dd
+YYYY-mm-dd
+(It follows the Year -> Month -> Date standard so be careful)
+
+\(folder) -> Searches all folders
+\(file) -> Searches all files
+\(*.pdf) -> Ends with (in this example ".pdf")
+\(run/media/usb_stick*) -> Starts with (in this example "run/media/usb_stick")
+
+Example:
+\(size < 1mb)\(/media/usb_stick*)\(created > 2025/1/1)important_file -> Finds "important_file", the path must start with /media/usb_stick, the file is smaller than 1mb and created after 2025/1/1
+\(size > 5gb) -> Finds all files bigger than 5gb
+\(folder)cache -> Finds all folders which contain the name "cache" inside (".cache" for example)
+```
+
+For each filter you can optionally add a ! to negate them or just write ! with no filter (making it the "doesn't contain" filter)
 
 Examples:
 ```
-xyz yyy      -> Searches if file contains "xyz yyy"
-\!xyz yyy    -> Searches if file doesn't contain "xyz yyy"
-\!xyz\ yyy   -> Searches if file doesn't contain "xyz" AND contains "yyy" (spaces must be escaped to create a new predicate)
-\_*xyz       -> Starts with "xyz"
-\*_xyz       -> Ends with "xyz"
-\!_*xyz      -> Doesn't ends with "xyz"
-\!*_xyz      -> Doesn't starts with "xyz"
-\*_xyz\ yyy  -> Ends with "xyz" AND contains "yyy"   
+\!name -> Doesn't contain "name"
+\!(size > 1mb)name -> NOT bigger than 1mb and contains "name"
+\!(m < 2020/1/2)\!name -> NOT modified before 2020/1/2 and NOT contains "name"
+\(folder)\!name -> A folder which does NOT contain "name"
+\(size < 1mb)\!(/media/1*)\(created > 2025/1/1)\!.cache\home -> Smaller than a mb, doesn't starts with /media/1, created after 2025/1/1, doesn't contain .cache and contains home
 ```
+
 
 # Troubleshoot Errors
 
-Q: WARNING: no drive selected
-A: Open the settings (top left) -> Disks -> + -> Select the right disk -> Select the FilesystemType (if unsure type "df -Th" in a console and find the drive) -> OK
-
-Q: I have selected a drive but nothing shows up
-A: You must also select the drive type (if unsure type "df -Th" in a console and find the drive)
-
-Q: WARNING: x selected drives' magic header does not match selected filesystem type
-A: means that one or more selected drives should have another filesystem type (if unsure type "df -Th" in a console and find the drive)
-
 Q: WARNING: x drives do not exist or you do not have permission to open them
+
 A: Means that one or more drives do not exist (incorrect path, drive was unmounted, bad drive) or that you ran the program without sudo and it attemps to open the drives with lacking permissions
 
-Anything else send me an email at davidevufficial@gmail.com or open an issue here on github.
+Q: I think I found an error, bug or problem!
+
+A: Send me an email at davidevufficial@gmail.com or open an issue here on github.
 
 # Limitations
 
