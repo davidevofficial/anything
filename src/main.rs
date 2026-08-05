@@ -67,7 +67,9 @@ pub struct Settings{
     ignore_case: bool,
     search_full_path: bool,
     light_mode: bool,
-    pixels_per_point: f32
+    pixels_per_point: f32,
+    dynamic: bool,
+    dynamic_factor: u32
 }
 fn string_to_sort(string: &str) -> Sort{
     match string{
@@ -257,6 +259,9 @@ pub fn save_settings(settings: Settings){
     writeln!(writer, "search_full_path:{:?}",settings.search_full_path).unwrap();
     writeln!(writer, "light_mode:{:?}",settings.light_mode).unwrap();
     writeln!(writer, "pixels_per_point:{:?}",settings.pixels_per_point).unwrap();
+    writeln!(writer, "dynamic:{:?}",settings.dynamic).unwrap();
+    writeln!(writer, "dynamic_factor:{:?}",settings.dynamic_factor).unwrap();
+
     writer.flush().unwrap();
 }
 pub fn load_settings() -> Settings{
@@ -296,7 +301,8 @@ pub fn load_settings() -> Settings{
     let mut search_full_path = true;
     let mut light_mode = true;
     let mut pixels_per_point = 1.0;
-
+    let mut dynamic = false;
+    let mut dynamic_factor = 100;
     for line in reader.lines(){
         let line = line.unwrap();
         let attr: Vec<&str> = line.split(':').collect();
@@ -319,6 +325,8 @@ pub fn load_settings() -> Settings{
             "search_full_path"=>{search_full_path=attr[1]=="true"}
             "light_mode"=>{light_mode=attr[1]=="true"}
             "pixels_per_point"=>{pixels_per_point=attr[1].parse::<f32>().expect("Line {i} is not a float")}
+            "dynamic" => {dynamic=attr[1]=="true"}
+            "dynamic_factor" =>{dynamic_factor=attr[1].parse::<u32>().expect("Line {i} is not a number")}
             _ =>{}
         }
     }
@@ -332,7 +340,9 @@ pub fn load_settings() -> Settings{
         ignore_case,
         search_full_path,
         light_mode,
-        pixels_per_point
+        pixels_per_point,
+        dynamic,
+        dynamic_factor
     }
 }
 pub fn save_cache(list_of_files: Vec<File>, list_of_directories: Vec<Directory>){
