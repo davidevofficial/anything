@@ -1,3 +1,4 @@
+use std::thread;
 use crate::{self as main, FilesystemType, exfat, ntfs, ext4};
 
 fn check_drive_filesystem_type(drive: String) -> FilesystemType{
@@ -381,62 +382,94 @@ pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, setting
 }
 
 pub fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory>, u32){
-    let mut items = (Vec::new(), Vec::new(), 0);
-    let temp_drives = get_devices();
-    for mut drive in drives.clone(){
-        let mut found = false;
-        for t in temp_drives.clone(){
-            if t.mounted_at == drive.mounted_at{
-                found = true;
-                if drive.drive != t.drive{
-                    drive.drive = t.drive;
-                }
-            }
-        }
-        if !found{
-            continue;
-        }
-        let fs = check_drive_filesystem_type(drive.drive.clone());
-        match fs{
-            FilesystemType::None =>{}
-            FilesystemType::Exfat => {
-                let idx = items.1.len() as u32;
-                let result = main::exfat::index(drive.drive, drive.mounted_at, drive.ignored_dirs, idx);
-                if result.is_err(){
-                    items.2 += result.err().unwrap();
-                }else{
-                    let (mut files, mut dir) = result.unwrap();
-                    items.0.append(&mut files);
-                    items.1.append(&mut dir);
-                }
-            }
-            FilesystemType::Ext4 => {
-                let idx = items.1.len() as u32;
-                let result = main::ext4::index(drive.drive, drive.mounted_at, drive.ignored_dirs, idx);
-                if result.is_err(){
-                    items.2 += result.err().unwrap();
-                }else{
-                    let (mut files, mut dir) = result.unwrap();
-                    items.0.append(&mut files);
-                    items.1.append(&mut dir);
-                }
-            }
-            FilesystemType::Ntfs => {
-                let idx = items.1.len() as u32;
-                let result = main::ntfs::index(drive.drive, drive.mounted_at, drive.ignored_dirs, idx);
-                if result.is_err(){
-                    items.2 += result.err().unwrap();
-                }else{
-                    let (mut files, mut dir) = result.unwrap();
-                    items.0.append(&mut files);
-                    items.1.append(&mut dir);
-                }
-            }
-        }
+    let mut items: (Vec<main::File>, Vec<main::Directory>, u32) = (Vec::new(), Vec::new(), 0);
+    let mut vec = Vec::new();
+    for d in drives{
+        vec.push((d.drive.clone(), d.mounted_at.clone(), d.ignored_dirs.clone()));
     }
+    let handles: Vec<_> = vec
+        .into_iter()
+        .map(|(drive, mounted_at, ignored_dirs)| {
+            thread::spawn(move || index(drive, mounted_at, ignored_dirs))
+        })
+        .collect();
+
+    let temp_items: Vec<(Vec<main::File>, Vec<main::Directory>, u32)> = handles
+        .into_iter()
+        .map(|h| h.join().expect("thread panicked"))
+        .collect();
+
+    let mut idx = 0;
+    let mut err = 0;
+    for t in &temp_items{
+        err += t.2;
+        for f in &t.0{
+            let mut f = f.clone();
+            f.parent += idx;
+            items.0.push(f);
+        }
+        idx += t.1.len() as u32;
+    }
+    for mut t in temp_items{
+        items.1.append(&mut t.1);
+    }
+    items.2 = err;
     items
 }
 
+fn index(mut drive: String, mounted_at: String, ignored_dirs: Vec<String>)
+    -> (Vec<main::File>, Vec<main::Directory>, u32){
+    let mut items = (Vec::new(), Vec::new(), 0);
+    let mut found = false;
+    let temp_drives = get_devices();
+    for t in temp_drives.clone(){
+        if t.mounted_at == mounted_at{
+            found = true;
+            if drive != t.drive{
+                drive = t.drive;
+            }
+        }
+    }
+    if !found{
+        return items;
+    }
+    let fs = check_drive_filesystem_type(drive.clone());
+    match fs{
+        FilesystemType::None =>{}
+        FilesystemType::Exfat => {
+            let result = main::exfat::index(drive.clone(), mounted_at.clone(), ignored_dirs);
+            if result.is_err(){
+                items.2 += result.err().unwrap();
+            }else{
+                let (mut files, mut dir) = result.unwrap();
+                items.0.append(&mut files);
+                items.1.append(&mut dir);
+            }
+        }
+        FilesystemType::Ext4 => {
+            let result = main::ext4::index(drive.clone(), mounted_at.clone(), ignored_dirs);
+            if result.is_err(){
+                items.2 += result.err().unwrap();
+            }else{
+                let (mut files, mut dir) = result.unwrap();
+                items.0.append(&mut files);
+                items.1.append(&mut dir);
+            }
+        }
+        FilesystemType::Ntfs => {
+            let result = main::ntfs::index(drive.clone(), mounted_at.clone(), ignored_dirs);
+            if result.is_err(){
+                items.2 += result.err().unwrap();
+            }else{
+                let (mut files, mut dir) = result.unwrap();
+                items.0.append(&mut files);
+                items.1.append(&mut dir);
+            }
+        }
+    }
+    println!("Drive: {}, Mounted at: {} finished indexing!", drive, mounted_at);
+    items
+}
 pub fn get_devices()->Vec<main::Drive>{
     let lsblk = std::process::Command::new("lsblk")
         .args(&["-l", "-n", "-o", "PATH,MOUNTPOINT"])
