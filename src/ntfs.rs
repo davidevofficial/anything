@@ -479,10 +479,10 @@ struct NtfsFile {
     last_modified_timestamp: i64,
 }
 
-fn from_ntfs_file_to_file(f: &NtfsFile, idx: u32) -> File {
+fn from_ntfs_file_to_file(f: &NtfsFile) -> File {
     File {
         name:                   f.name.clone(),
-        parent:                 f.parent + idx,
+        parent:                 f.parent,
         size:                   f.size,
         is_dir:                 f.is_dir,
         create_timestamp:       f.create_timestamp,
@@ -507,7 +507,6 @@ pub fn index(
     drive: String,
     mounted_at: String,
     ignored_dirs: Vec<String>,
-    idx: u32,
 ) -> Result<(Vec<File>, Vec<Directory>), u32> {
     let drive = NtfsDrive::new(drive, mounted_at, ignored_dirs);
     if drive.is_err(){
@@ -516,7 +515,7 @@ pub fn index(
     let drive = drive.unwrap().index_from_root();
 
     let files = drive.files.iter()
-        .map(|f| from_ntfs_file_to_file(f, idx))
+        .map(|f| from_ntfs_file_to_file(f))
         .collect();
 
     Ok((files, drive.directories))

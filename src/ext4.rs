@@ -347,10 +347,10 @@ struct Ext4File {
     // contigous: bool,
 }
 
-fn from_ext4_files_to_files(ext4_file: &Ext4File, idx: u32) -> File {
+fn from_ext4_files_to_files(ext4_file: &Ext4File) -> File {
     File {
         name: ext4_file.name.clone(),
-        parent: ext4_file.parent + idx,
+        parent: ext4_file.parent,
         size: ext4_file.size,
         is_dir: ext4_file.is_dir,
         create_timestamp: ext4_file.create_timestamp,
@@ -371,7 +371,7 @@ pub fn is_drive_valid(drive: String) -> bool{
         false
     }
 }
-pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>, idx: u32) -> Result<(Vec<File>, Vec<Directory>), u32> {
+pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>) -> Result<(Vec<File>, Vec<Directory>), u32> {
     let drive = Ext4Drive::new(drive, mounted_at, ignored_dirs);
     if drive.is_err(){
         return Err(drive.err().unwrap());
@@ -388,7 +388,7 @@ pub fn index(drive: String, mounted_at: String, ignored_dirs: Vec<String>, idx: 
     }
     let mut output = Vec::new();
     for f in drive.files {
-        output.push(from_ext4_files_to_files(&f, idx));
+        output.push(from_ext4_files_to_files(&f));
     }
     Ok((output, drive.directories))
 }
