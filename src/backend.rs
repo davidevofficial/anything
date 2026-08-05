@@ -431,11 +431,12 @@ fn index(mut drive: String, mounted_at: String, ignored_dirs: Vec<String>)
         }
     }
     if !found{
+        items.2+=100;
         return items;
     }
     let fs = check_drive_filesystem_type(drive.clone());
     match fs{
-        FilesystemType::None =>{}
+        FilesystemType::None =>{items.2 += 100;}
         FilesystemType::Exfat => {
             let result = main::exfat::index(drive.clone(), mounted_at.clone(), ignored_dirs);
             if result.is_err(){
