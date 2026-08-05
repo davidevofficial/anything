@@ -308,59 +308,25 @@ fn filter_match(item: &main::File, predicate: SearchFilter) -> bool{
 pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<usize>{
     let mut output: Vec<usize> = Vec::new();
     let predicates = string_to_predicates(searching_for.clone());
-    let contains_slash = if searching_for.contains(&"/"){true}else{false};
+
     dbg!(predicates.clone());
     if predicates.len() == 1{
-        if settings.search_full_path && !contains_slash{
-            // perhaps the only case where I can create a temp_cache_dir: Vec<usize>
-            for j in 0..items.len(){
-                match cancel_flag.try_recv(){
-                    Ok(1) => {return output;}
-                    _=>{}
-                }
-                let mut search_filter = predicates[0].clone();
-                let mut item = items[j].clone();
-                if settings.ignore_case{
-                    search_filter.search_string = search_filter.search_string.to_lowercase();
-                    item.name = directories[item.parent as usize].name.clone() + &item.name;
-                    item.name = item.name.to_lowercase();
-                }
-                if filter_match(&item, search_filter.clone()){
-                    output.push(j);
-                }
+        for j in 0..items.len(){
+            match cancel_flag.try_recv(){
+                Ok(1) => {return output;}
+                _=>{}
             }
-        } else if !settings.search_full_path{
-            for j in 0..items.len(){
-                match cancel_flag.try_recv(){
-                    Ok(1) => {return output;}
-                    _=>{}
-                }
-                let mut search_filter = predicates[0].clone();
-                let mut item = items[j].clone();
-                if settings.ignore_case{
-                    search_filter.search_string = search_filter.search_string.to_lowercase();
-                    item.name = item.name.to_lowercase();
-                }
-                if filter_match(&item, search_filter.clone()){
-                    output.push(j);
-                }
-            }
-        } else if settings.search_full_path && contains_slash{
-            for j in 0..items.len(){
-                match cancel_flag.try_recv(){
-                    Ok(1) => {return output;}
-                    _=>{}
-                }
-                let mut search_filter = predicates[0].clone();
-                let mut item = items[j].clone();
-                if settings.ignore_case{
-                    search_filter.search_string = search_filter.search_string.to_lowercase();
+            let mut search_filter = predicates[0].clone();
+            let mut item = items[j].clone();
+            if settings.ignore_case{
+                search_filter.search_string = search_filter.search_string.to_lowercase();
+                if settings.search_full_path{
                     item.name = directories[item.parent as usize].name.clone() + &item.name;
-                    item.name = item.name.to_lowercase();
                 }
-                if filter_match(&item, search_filter.clone()){
-                    output.push(j);
-                }
+                item.name = item.name.to_lowercase();
+            }
+            if filter_match(&item, search_filter.clone()){
+                output.push(j);
             }
         }
     } else if predicates.len() > 1{
@@ -368,56 +334,22 @@ pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, setting
         for i in 0..predicates.len(){
             if i == 0{
                 //start caching
-                if settings.search_full_path && !contains_slash{
-                    // perhaps the only case where I can create a temp_cache_dir: Vec<usize>
-                    for j in 0..items.len(){
-                        match cancel_flag.try_recv(){
-                            Ok(1) => {return output;}
-                            _=>{}
-                        }
-                        let mut search_filter = predicates[0].clone();
-                        let mut item = items[j].clone();
-                        if settings.ignore_case{
-                            search_filter.search_string = search_filter.search_string.to_lowercase();
-                            item.name = directories[item.parent as usize].name.clone() + &item.name;
-                            item.name = item.name.to_lowercase();
-                        }
-                        if filter_match(&item, search_filter.clone()){
-                            output.push(j);
-                        }
+                for j in 0..items.len(){
+                    match cancel_flag.try_recv(){
+                        Ok(1) => {return output;}
+                        _=>{}
                     }
-                } else if !settings.search_full_path{
-                    for j in 0..items.len(){
-                        match cancel_flag.try_recv(){
-                            Ok(1) => {return output;}
-                            _=>{}
-                        }
-                        let mut search_filter = predicates[0].clone();
-                        let mut item = items[j].clone();
-                        if settings.ignore_case{
-                            search_filter.search_string = search_filter.search_string.to_lowercase();
-                            item.name = item.name.to_lowercase();
-                        }
-                        if filter_match(&item, search_filter.clone()){
-                            output.push(j);
-                        }
-                    }
-                } else if settings.search_full_path && contains_slash{
-                    for j in 0..items.len(){
-                        match cancel_flag.try_recv(){
-                            Ok(1) => {return output;}
-                            _=>{}
-                        }
-                        let mut search_filter = predicates[0].clone();
-                        let mut item = items[j].clone();
-                        if settings.ignore_case{
-                            search_filter.search_string = search_filter.search_string.to_lowercase();
+                    let mut search_filter = predicates[0].clone();
+                    let mut item = items[j].clone();
+                    if settings.ignore_case{
+                        search_filter.search_string = search_filter.search_string.to_lowercase();
+                        if settings.search_full_path{
                             item.name = directories[item.parent as usize].name.clone() + &item.name;
-                            item.name = item.name.to_lowercase();
                         }
-                        if filter_match(&item, search_filter.clone()){
-                            output.push(j);
-                        }
+                        item.name = item.name.to_lowercase();
+                    }
+                    if filter_match(&item, search_filter.clone()){
+                        output.push(j);
                     }
                 }
             } else{
@@ -443,10 +375,8 @@ pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, setting
                 }
                 output = temp;
             }
-
         }
     }
-
     output
 }
 
