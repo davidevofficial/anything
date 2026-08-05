@@ -1,5 +1,5 @@
 # Anything
-Simple program made in rust with a GUI to find **any** file/directory in a list of drives.
+Simple program made in rust with a GUI to find **any** file/directory in a list of drives. It works by first skimming the content of all selected drives and then creating an highly optimized index which later gets searched.
 
 [Installation](https://github.com/davidevofficial/anything#Installation "installation")
 
@@ -16,7 +16,10 @@ Supports:
 - Sorting files
 - Searches the full path or the file name
 - Powerful search options
-- (Planned) Use of the journal on the root drive to check if anything changed and update the index accordingly
+- Autodetects the Filesystems of drives
+- Dynamically or periodically index drives
+- Indexing is parallelized, making it blazingly fast 
+- (Planned) Automatically add recently changed files without re-indexing
 
 # Why?
 
