@@ -194,7 +194,7 @@ impl ExFATDrive{
                     let contigous = if contigous == 2{true}else{false};
                     let mut to_ignore = false;
                     for i in self.ignored_dirs.clone(){
-                        if name.starts_with(&i){
+                        if full_name.starts_with(&i){
                             to_ignore = true;
                         }
                     }
