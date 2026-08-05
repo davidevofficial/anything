@@ -382,7 +382,7 @@ pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, setting
 
 pub fn index_drives(drives: Vec<main::Drive>)->(Vec<main::File>, Vec<main::Directory>, u32){
     let mut items = (Vec::new(), Vec::new(), 0);
-    let temp_drives = main::get_devices();
+    let temp_drives = get_devices();
     for mut drive in drives.clone(){
         let mut found = false;
         for t in temp_drives.clone(){
