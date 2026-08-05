@@ -522,7 +522,7 @@ impl eframe::App for Anything {
                         }
                         ui.horizontal(|ui|{
                             if ui.add_sized(ui.available_size(), egui::Button::new("+")).clicked(){
-                                self.temp_drives = main::get_devices();
+                                self.temp_drives = backend::get_devices();
                                 self.lsblk_window = true;
                             };
                         });

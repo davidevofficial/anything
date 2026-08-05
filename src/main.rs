@@ -98,52 +98,7 @@ pub enum Sort{
     FileAscending,
     FileDescending
 }
-pub fn get_devices()->Vec<Drive>{
-    let lsblk = std::process::Command::new("lsblk")
-        .args(&["-l", "-n", "-o", "PATH,MOUNTPOINT"])
-        .output()
-        .expect("lsblk failed");
-    let mut drives = Vec::new();
-    let lines = lines_from_bytes(lsblk.stdout);
-    for i in 0..lines.len(){
-        if lines[i].contains(&b'/'){
-            if lines[i][5] == b's' && lines[i][6] == b'd' || lines[i][5] == b'n' || lines[i][5] == b'm'{
-                let mut space = 0;
-                for j in 0..lines[i].len(){
-                    if lines[i][j] == b' '{space=j;break;}
-                }
-                let drive = &lines[i][0..space];
-                let mut slash = 0;
-                for j in space..lines[i].len(){
-                    if lines[i][j] == b'/'{slash=j;break;}
-                }
-                if slash == 0{continue}
-                let mounted_at = &lines[i][slash..lines[i].len()-1];
-                let drive = drive.to_vec();
-                let drive = String::from_utf8(drive).unwrap();
-                let mounted_at = String::from_utf8(mounted_at.to_vec()).unwrap();
-                drives.push(Drive{drive,mounted_at,ignored_dirs:vec![]});
-            }
-        }
-    }
-    drives
-}
-pub fn lines_from_bytes(mut data: Vec<u8>) -> Vec<Vec<u8>> {
-    let mut lines = Vec::new();
 
-    while let Some(pos) = data[0..].iter().position(|&b| b == b'\n') {
-        let end = pos;
-        lines.push(data.drain(0..=end).collect());
-        // No need for start = end + 1; drain adjusts remaining data
-    }
-
-    // Last line
-    if !data.is_empty() {
-        lines.push(data.drain(..).collect());
-    }
-
-    lines
-}
 
 fn main()  {
     println!("CWD: {:?}", env::current_dir().unwrap());
