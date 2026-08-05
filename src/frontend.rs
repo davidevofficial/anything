@@ -201,21 +201,29 @@ impl Anything{
                     let row_index = row.index();
                     if row_index < self.search_results.len() && row_index < self.items.0.len(){
                         let i = self.search_results[row_index];
-                        row.col(|ui| {
-                            ui.label(&self.items.0[i].name);
-                        });
-                        row.col(|ui| {
-                            ui.label(main::size_to_pretty_string(self.items.0[i].size));
-                        });
-                        row.col(|ui| {
-                            ui.label(main::timestamp_to_string(self.items.0[i].create_timestamp));
-                        });
-                        row.col(|ui| {
-                            ui.label(main::timestamp_to_string(self.items.0[i].last_modified_timestamp));
-                        });
-                        row.col(|ui| {
-                            ui.label(self.items.1[self.items.0[i].parent as usize].name.clone()+&self.items.0[i].name);
-                        });
+                        let item = self.items.0.get(i);
+                        if item.is_some(){
+                            let item = item.unwrap();
+                            let dir = self.items.1.get(item.parent as usize);
+                            if dir.is_some(){
+                                let dir = dir.unwrap();
+                                row.col(|ui| {
+                                    ui.label(&item.name);
+                                });
+                                row.col(|ui| {
+                                    ui.label(main::size_to_pretty_string(item.size));
+                                });
+                                row.col(|ui| {
+                                    ui.label(main::timestamp_to_string(item.create_timestamp));
+                                });
+                                row.col(|ui| {
+                                    ui.label(main::timestamp_to_string(item.last_modified_timestamp));
+                                });
+                                row.col(|ui| {
+                                    ui.label(dir.name.clone()+&item.name);
+                                });
+                            }
+                        }
                     }else{
                         row.col(|_ui|{});
                         row.col(|_ui|{});
