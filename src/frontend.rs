@@ -26,6 +26,7 @@ struct Anything{
     search_results: Vec<usize>,
     cancel_search: Option<std::sync::mpsc::Sender<u8>>,
     times_it_has_indexed: u32,
+    time_to_index: f32,
     not_first_frame: bool,
 }
 
@@ -308,6 +309,8 @@ impl eframe::App for Anything {
                                     self.items.1 = items.1;
                                     self.sort_items();
                                     let errors = items.2;
+                                    self.time_to_index = self.time_last_index.unwrap().elapsed().as_secs_f32();
+                                    println!("Indexing took: {:.3?}", self.time_to_index);
                                     if errors == 0{
                                         self.status = format!("Indexing took: {:.3?}, Files found: {}"
                                             ,self.time_last_index.unwrap().elapsed(),self.items.0.len());
@@ -344,10 +347,23 @@ impl eframe::App for Anything {
         if self.time_last_index.is_none(){
             self.time_last_index = Some(std::time::Instant::now());
         } else {
-            let m = self.settings.index_every_minutes as u64;
-            if std::time::Duration::from_secs(m * 60) >std::time::Duration::from_secs(1) &&
-            self.time_last_index.unwrap().elapsed() > std::time::Duration::from_secs(m * 60){
-                self.indexed = false;
+            if self.settings.dynamic{
+                let s = self.time_to_index as u64 * self.settings.dynamic_factor as u64;
+                if s > 1{
+                    if self.time_last_index.unwrap().elapsed() > std::time::Duration::from_secs(s) && self.finished_indexing{
+                        self.indexed = false;
+                    }
+                }else{
+                    if self.time_last_index.unwrap().elapsed() > std::time::Duration::from_secs(self.settings.dynamic_factor as u64) && self.finished_indexing{
+                        self.indexed = false;
+                    }
+                }
+            }else{
+                let m = self.settings.index_every_minutes as u64;
+                if std::time::Duration::from_secs(m * 60) >std::time::Duration::from_secs(1) &&
+                self.time_last_index.unwrap().elapsed() > std::time::Duration::from_secs(m * 60){
+                    self.indexed = false;
+                }
             }
         }
         // No disk warning
@@ -456,17 +472,26 @@ impl eframe::App for Anything {
                             ui.checkbox(&mut new_settings.index_on_startup, "Index on startup");
                         });
                         ui.horizontal(|ui|{
-                            ui.label("Index Once every");
-                            if ui.text_edit_singleline(&mut temp).changed(){
-                                self.temp = temp.clone();
-                                let try_convert = temp.parse::<u32>();
-                                if try_convert.is_ok(){
-                                    new_settings.index_every_minutes = try_convert.unwrap();
-
-                                }
-                            }
-                            ui.label("Minutes");
+                           ui.checkbox(&mut new_settings.dynamic, "Dynamic Indexing");
                         });
+                        if new_settings.dynamic{
+                            ui.horizontal(|ui|{
+                                let _slider = ui.add(egui::Slider::new(&mut new_settings.dynamic_factor, 2..=200).text("Dynamic Factor"));
+                            });
+                        }else{
+                            ui.horizontal(|ui|{
+                                ui.label("Index Once every");
+                                if ui.text_edit_singleline(&mut temp).changed(){
+                                    self.temp = temp.clone();
+                                    let try_convert = temp.parse::<u32>();
+                                    if try_convert.is_ok(){
+                                        new_settings.index_every_minutes = try_convert.unwrap();
+
+                                    }
+                                }
+                                ui.label("Minutes");
+                            });
+                        }
                         ui.horizontal(|ui|{
                             ui.checkbox(&mut new_settings.instant_search, "Istant Search");
                         });
