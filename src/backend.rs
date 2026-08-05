@@ -171,7 +171,7 @@ impl FilterType{
             if v[0].is_empty(){
                 return FilterType::EndsWith(v[1].to_string());
             }else{
-                return FilterType::StartsWith(v[2].to_string())
+                return FilterType::StartsWith(v[0].to_string())
             }
         }
         // folder/file
