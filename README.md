@@ -128,7 +128,13 @@ Type=Application
 X-KDE-SubstituteUID=false
 X-KDE-Username=
 ```
-Based on the Desktop Environment you can copy the file inside of /usr/share/applications/ or to /home/USER/.local/share/applications , doing so will add desktop integration
+
+To use the Anything.desktop file use the following helpful command which can be found on multiple distros:
+```
+desktop-file-install Anything.desktop
+(man desktop-file-install to know how to use it)
+```
+Alternatively based on the Desktop Environment you can copy the file inside of /usr/share/applications/ or to /home/USER/.local/share/applications , doing so will add desktop integration
 
 In the future I'll support other means for distributing the binary such as Flatpaks
 
