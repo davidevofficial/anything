@@ -1,13 +1,8 @@
-
-FROM rust:1-alpine3.20
-
-RUN apk add --no-cache \
-    musl-dev \
-    build-base \
-    pkgconfig \
-    openssl-dev \
-    openssl-libs-static \
-    mesa-dev \
+FROM rust:1-bullseye
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    libgl1-mesa-dev \
     libx11-dev \
     libxcursor-dev \
     libxi-dev \
@@ -17,22 +12,19 @@ RUN apk add --no-cache \
     file \
     git \
     curl \
-    squashfs-tools
+    squashfs-tools \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN cargo install cargo-appimage
 
-# appimagetool needs FUSE to mount the AppImage; containers usually can't
-# provide that, so fall back to extract-and-run.
 ENV APPIMAGE_EXTRACT_AND_RUN=1
 
-RUN url=$(curl -s --retry 5 --retry-delay 2 --retry-connrefused \
-        https://api.github.com/repos/AppImage/appimagetool/releases/tags/continuous \
-        | grep "browser_download_url.*appimagetool-x86_64.AppImage\"" \
-        | head -n1 \
-        | cut -d '"' -f4) \
-    && curl -L --retry 5 --retry-delay 2 --retry-connrefused \
-        -o /usr/local/bin/appimagetool "$url" \
-    && chmod +x /usr/local/bin/appimagetool
+RUN curl -L --retry 5 --retry-delay 2 --retry-connrefused \
+        -o /usr/local/bin/appimagetool \
+        "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" \
+    && chmod +x /usr/local/bin/appimagetool \
+    && /usr/local/bin/appimagetool --version
 
 WORKDIR /app
 COPY . .
