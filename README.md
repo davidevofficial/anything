@@ -133,6 +133,10 @@ The settings button opens a sub-menu with four buttons: Behaviour, Disks, Light 
 
 Index on startup: If it should automatically index when starting up the program
 
+Dynamic Indexing: Whether to index based on how much time it took last time (for example: if it took 10 seconds, next index will be in 10 * dynamic_factor seconds)
+
+Dynamic Factor: Determines how long to wait for dynamic index ( time_it_took_to_index_last_time * dynamic_factor )
+
 Index Once every __ xyz __ minutes: Checks for changes after xyz minutes
 
 Instant Search: Whether to click the search button to search (if not it automatically starts the search 0.3 seconds after you started typing and interrupts it when starting typing again)
