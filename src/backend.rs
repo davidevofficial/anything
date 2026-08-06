@@ -105,6 +105,17 @@ fn date_to_epoch(s: &str) -> i64{
     return 0;
 }
 
+fn wrapper_parse_u64(s: &str) -> u64{
+    let n = s.parse::<u64>();
+    if n.is_ok(){
+        return n.unwrap()
+    }else{0}
+}
+
+pub const KB: u64 = 1_000;
+pub const MB: u64 = 1_000_000;
+pub const GB: u64 = 1_000_000_000;
+pub const TB: u64 = 1_000_000_000_000;
 /// From human readable to bytes (u64) lowercase or uppercase doesn't matter
 /// 123b = 123, 123 = 123
 /// 123k = 123.000, 123Kb = 123.000
@@ -113,35 +124,36 @@ fn date_to_epoch(s: &str) -> i64{
 /// 1t = 1.000.000.000.000, 1Tb = 1.000.000.000.000
 fn string_to_size_in_bytes(s: &str) -> u64{
     let s = s.to_lowercase();
+
     // Terabyte = 1_000_000_000_000 Bytes
     if s.ends_with('t'){
-        return s[0..s.len()-1].parse::<u64>().unwrap() * 1_000_000_000_000;
+        return wrapper_parse_u64(&s[0..s.len()-1]) * TB;
     }else if s.ends_with("tb"){
-        return s[0..s.len()-2].parse::<u64>().unwrap() * 1_000_000_000_000;
+        return wrapper_parse_u64(&s[0..s.len()-2]) * TB;
     }
     // Gigabyte = 1_000_000_000 Bytes
     if s.ends_with('g'){
-        return s[0..s.len()-1].parse::<u64>().unwrap() * 1_000_000_000;
+        return wrapper_parse_u64(&s[0..s.len()-1]) * GB;
     }else if s.ends_with("gb"){
-        return s[0..s.len()-2].parse::<u64>().unwrap() * 1_000_000_000;
+        return wrapper_parse_u64(&s[0..s.len()-2]) * GB;
     }
     // Megabyte = 1_000_000 Bytes
     if s.ends_with('m'){
-        return s[0..s.len()-1].parse::<u64>().unwrap() * 1_000_000;
+        return wrapper_parse_u64(&s[0..s.len()-1]) * MB;
     }else if s.ends_with("mb"){
-        return s[0..s.len()-2].parse::<u64>().unwrap() * 1_000_000;
+        return wrapper_parse_u64(&s[0..s.len()-2]) * MB;
     }
     // Kilobytes = 1000 Bytes
     if s.ends_with('k'){
-        return s[0..s.len()-1].parse::<u64>().unwrap() * 1_000;
+        return wrapper_parse_u64(&s[0..s.len()-1]) * KB;
     }else if s.ends_with("kb"){
-        return s[0..s.len()-2].parse::<u64>().unwrap() * 1_000;
+        return wrapper_parse_u64(&s[0..s.len()-2]) * KB;
     }
     // Bytes = 1 Byte
     if s.ends_with('b'){
-        return s[0..s.len()-1].parse::<u64>().unwrap();
+        return wrapper_parse_u64(&s[0..s.len()-1]);
     }
-    return s.parse::<u64>().unwrap();
+    return wrapper_parse_u64(&s[0..s.len()]);
 
 }
 
