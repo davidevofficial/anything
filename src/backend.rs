@@ -300,7 +300,7 @@ fn filter_match(item: &main::File, predicate: SearchFilter) -> bool{
             FilterType::StartsWith(y) => {return !item.name.starts_with(y.as_str()) && item.name.contains(predicate.search_string.as_str())}
             FilterType::ModifiedAfter(x) => {return item.last_modified_timestamp < x && item.name.contains(predicate.search_string.as_str())}
             FilterType::ModifiedBefore(x) => {return item.last_modified_timestamp > x && item.name.contains(predicate.search_string.as_str())}
-            FilterType::NewerThan(x) => {return item.create_timestamp < x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::CreatedAfter(x) => {return item.create_timestamp < x && item.name.contains(predicate.search_string.as_str())}
             FilterType::CreatedBefore(x) => {return item.create_timestamp > x && item.name.contains(predicate.search_string.as_str())}
             FilterType::None => {return !item.name.contains(predicate.search_string.as_str())}
         }
