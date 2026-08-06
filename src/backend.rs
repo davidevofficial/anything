@@ -151,8 +151,8 @@ enum FilterType{
     SmallerThan(u64),
     IsFolder,
     IsFile,
-    OlderThan(i64),
-    NewerThan(i64),
+    CreatedBefore(i64),
+    CreatedAfter(i64),
     ModifiedAfter(i64),
     ModifiedBefore(i64),
     StartsWith(String),
@@ -191,7 +191,7 @@ impl FilterType{
                 }
                 "c" | "creation" => {
                     let date = date_to_epoch(parts[1]);
-                    return FilterType::OlderThan(date);
+                    return FilterType::CreatedAfter(date);
                 }
                 "m" | "modified" => {
                     let date = date_to_epoch(parts[1]);
@@ -212,7 +212,7 @@ impl FilterType{
                 }
                 "c" | "creation" => {
                     let date = date_to_epoch(parts[1]);
-                    return FilterType::NewerThan(date);
+                    return FilterType::CreatedBefore(date);
                 }
                 "m" | "modified" => {
                     let date = date_to_epoch(parts[1]);
@@ -287,7 +287,7 @@ fn filter_match(item: &main::File, predicate: SearchFilter) -> bool{
             FilterType::ModifiedAfter(x) => {return item.last_modified_timestamp > x && item.name.contains(predicate.search_string.as_str())}
             FilterType::ModifiedBefore(x) => {return item.last_modified_timestamp < x && item.name.contains(predicate.search_string.as_str())}
             FilterType::NewerThan(x) => {return item.create_timestamp > x && item.name.contains(predicate.search_string.as_str())}
-            FilterType::OlderThan(x) => {return item.create_timestamp < x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::CreatedBefore(x) => {return item.create_timestamp < x && item.name.contains(predicate.search_string.as_str())}
             FilterType::None => {return item.name.contains(predicate.search_string.as_str())}
         }
     }else{
@@ -301,7 +301,7 @@ fn filter_match(item: &main::File, predicate: SearchFilter) -> bool{
             FilterType::ModifiedAfter(x) => {return item.last_modified_timestamp < x && item.name.contains(predicate.search_string.as_str())}
             FilterType::ModifiedBefore(x) => {return item.last_modified_timestamp > x && item.name.contains(predicate.search_string.as_str())}
             FilterType::NewerThan(x) => {return item.create_timestamp < x && item.name.contains(predicate.search_string.as_str())}
-            FilterType::OlderThan(x) => {return item.create_timestamp > x && item.name.contains(predicate.search_string.as_str())}
+            FilterType::CreatedBefore(x) => {return item.create_timestamp > x && item.name.contains(predicate.search_string.as_str())}
             FilterType::None => {return !item.name.contains(predicate.search_string.as_str())}
         }
     }
