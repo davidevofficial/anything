@@ -178,7 +178,7 @@ pub fn save_drives(drives: Vec<Drive>){
             }
         }
         s = format!("{s}]");
-        writeln!(writer, "{} {} {}",
+        writeln!(writer, "{}\t{}\t{}",
             drive.drive, drive.mounted_at, s).unwrap();
 
     }
@@ -214,7 +214,7 @@ pub fn load_drives() -> Vec<Drive>{
         let line = line.unwrap();
         let mut ignored_dirs = Vec::new();
 
-        let attr: Vec<&str> = line.splitn(3, ' ').collect();
+        let attr: Vec<&str> = line.splitn(3, '\t').collect();
         let drive = attr[0].to_string();
         let mounted_at = attr[1].to_string();
         for dir in attr[2][1..attr[2].len()-1].split(", "){
