@@ -3,10 +3,9 @@ Simple program made in rust with a GUI to find **any** file/directory in a list 
 
 [Installation](https://github.com/davidevofficial/anything#Installation "installation")
 
-<img width="1603" height="725" alt="image" src="https://github.com/user-attachments/assets/679978fe-26a0-4deb-9e76-c1c3a1b3111e" />
+<img width="1702" height="841" alt="Screenshot_20260806_112849" src="https://github.com/user-attachments/assets/8c074a16-3a6d-4319-9fc3-a15034f9b519" />
 
-<img width="1606" height="733" alt="image" src="https://github.com/user-attachments/assets/1339f0c0-aa26-4139-af43-475d35495cdc" />
-
+<img width="1702" height="841" alt="Screenshot_20260806_113134" src="https://github.com/user-attachments/assets/1a71b017-49bd-42b8-ab1f-ff87ff82ac8a" />
 
 
 Supports:
