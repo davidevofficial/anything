@@ -44,7 +44,12 @@ For Ubuntu 24.04 LTS
 ```
 sudo apt install libfuse2t64 
 ```
-Ready to use! (see [how to use it](https://github.com/davidevofficial/anything?tab=readme-ov-file#how-to-use))
+Then
+```
+chmod +x Anything-version-x86_64.AppImage
+```
+
+Ready to use! see [how to use it](https://github.com/davidevofficial/anything?tab=readme-ov-file#how-to-use)
 
 If you find any errors check ["Troubleshoot errors"](https://github.com/davidevofficial/anything#troubleshoot-errors)
 
@@ -61,6 +66,30 @@ sudo apt-get install libatk1.0-dev libgdk-pixbuf2.0-dev
 sudo apt-get install libgtk-3-dev
 cargo build --release (or debug if you want debug)
 ```
+or use the docker builder file
+
+```
+git clone https://github.com/davidevofficial/anything.git
+
+(cd inside where Cargo.toml is)
+cd anything
+
+docker rm -f appimage-build 2>/dev/null
+docker rmi rust-appimage-builder 2>/dev/null
+docker build -t rust-appimage-builder . \
+  && mkdir -p target \
+  && docker run --rm -v "$PWD/target:/app/target" rust-appimage-builder \
+  && find target -iname "*.AppImage"
+
+```
+
+**Don't forget the following commands:**
+```
+chmod +x Anything.AppImage
+(and then to run)
+sudo ./Anything.AppImage
+```
+
 
 Final File structure (after running for the first time) should look like this:
 ```
@@ -105,7 +134,9 @@ In the future I'll support other means for distributing the binary such as Flatp
 
 # How to use
 
-run with [sudo](https://github.com/davidevofficial/anything?tab=readme-ov-file#limitations "See limitation:") for indexing and if indexing is not necessary you can drop priviliges.
+run with [sudo](https://github.com/davidevofficial/anything?tab=readme-ov-file#limitations "See limitation:") (sudo ./Anything.AppImage) for indexing
+
+If indexing is not necessary you can run without sudo.
 
 The main interface should be familiar to you if you come from windows (everything).
 
@@ -150,7 +181,9 @@ Search full path: If it searches the full path or just the file name
 
 Click the "+" button to start adding disks: that will open the lsblk window (select all drive you want to add), Click the "-" button to remove any drive
 
-Click the ✏️ (pencil) button to edit ignored directories: to get started type inside of the square any path and press enter (for example you could type /.tmp, /root, /bin or /media/path_where/external_usb/mounted_at/.Trash-1000), to remove an ignored path just click the "-" button, when you are done press OK
+Click the ✏️ (pencil) button to edit ignored directories: to get started type inside of the square any path and press enter (for example you could type /.tmp, /root, /bin or /media/path_where/external_usb/mounted_at/.Trash-1000), to remove an ignored path just click the "-" button
+
+When you are done press OK.
 
 
 ## Search Options
