@@ -1,6 +1,5 @@
 use eframe::egui::{self, FontId, TextWrapMode};
 use eframe;
-use std::fmt::format;
 use std::thread;
 use crate::{self as main, backend, save_cache, save_drives, save_settings};
 
