@@ -1,5 +1,5 @@
 use std::thread;
-use crate::{self as main, FilesystemType, exfat, ntfs, ext4};
+use crate::{self as main, FilesystemType, exfat, ntfs, ext4, fat32};
 
 /// If it can read on github the version.txt then it returns Some( maj, min, patch )
 pub fn check_current_verson() -> Option<(i32,i32,i32)>{
@@ -37,7 +37,11 @@ fn check_drive_filesystem_type(drive: String) -> FilesystemType{
     }
     else if ext4::is_drive_valid(drive.clone()){
         return FilesystemType::Ext4;
-    }else {
+    }
+    else if fat32::is_drive_valid(drive.clone()){
+        return FilesystemType::Fat32;
+    }
+    else {
         return FilesystemType::None;
     }
 }
@@ -498,6 +502,16 @@ fn index(mut drive: String, mounted_at: String, ignored_dirs: Vec<String>)
         }
         FilesystemType::Ntfs => {
             let result = main::ntfs::index(drive.clone(), mounted_at.clone(), ignored_dirs);
+            if result.is_err(){
+                items.2 += result.err().unwrap();
+            }else{
+                let (mut files, mut dir) = result.unwrap();
+                items.0.append(&mut files);
+                items.1.append(&mut dir);
+            }
+        }
+        FilesystemType::Fat32 => {
+            let result = main::fat32::index(drive.clone(), mounted_at.clone(), ignored_dirs);
             if result.is_err(){
                 items.2 += result.err().unwrap();
             }else{

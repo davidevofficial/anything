@@ -1,4 +1,5 @@
 mod exfat;
+mod fat32;
 mod ext4;
 mod ntfs;
 mod frontend;
@@ -52,6 +53,7 @@ pub enum FilesystemType{
     #[default]
     None,
     Exfat,
+    Fat32,
     Ext4,
     Ntfs
 }
