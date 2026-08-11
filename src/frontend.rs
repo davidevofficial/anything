@@ -1,5 +1,6 @@
 use eframe::egui::{self, FontId, TextWrapMode};
 use eframe;
+use std::fmt::format;
 use std::thread;
 use crate::{self as main, backend, save_cache, save_drives, save_settings};
 
@@ -657,11 +658,25 @@ impl eframe::App for Anything {
         println!("Bye Bye");
     }
 }
+
+const VERSION: (i32,i32,i32) = (3,1,0);
 pub fn start_frontend() -> Result<(), eframe::Error>{
+    let mut title = format!("Anything - v{}.{}.{}", VERSION.0, VERSION.1, VERSION.2);
+    // Version Check
+    let version = backend::check_current_verson();
+    if version.is_none(){}
+    else{
+        let v = version.unwrap();
+        if v.0 != VERSION.0 || v.1 != VERSION.1 || v.2 != VERSION.2{
+            let update_available_string = format!("(Update v{}.{}.{} is available!)",v.0,v.1,v.2);
+            title = format!("{} {}", title, update_available_string);
+        }
+    }
+
     let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_inner_size([1600.0, 700.0])
-                .with_title("Anything - v3.1")
+                .with_title(title)
                 .with_icon(
                     // NOTE: Adding an icon is optional
                     eframe::icon_data::from_png_bytes(&include_bytes!("../icon.png")[..])
