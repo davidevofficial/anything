@@ -1,6 +1,33 @@
 use std::thread;
 use crate::{self as main, FilesystemType, exfat, ntfs, ext4};
 
+/// If it can read on github the version.txt then it returns Some( maj, min, patch )
+pub fn check_current_verson() -> Option<(i32,i32,i32)>{
+    let url = "https://raw.githubusercontent.com/davidevofficial/anything/master/version.txt";
+    let output = std::process::Command::new("curl")
+        .arg("-sL") // silent, follow redirects
+        .arg(url)
+        .output();
+    if output.is_err(){return None;}
+    let c = String::from_utf8(output.unwrap().stdout);
+    if c.is_err(){return None;}
+    let c = c.unwrap();
+    for line in c.lines(){
+        let version: Vec<&str> = line.splitn(3, ".").collect();
+        let maj = version[0].parse::<i32>();
+        if maj.is_err(){return None;}
+        let maj = maj.unwrap();
+        let min = version[1].parse::<i32>();
+        if min.is_err(){return None;}
+        let min = min.unwrap();
+        let patch = version[2].parse::<i32>();
+        if patch.is_err(){return None;}
+        let patch = patch.unwrap();
+        return Some((maj, min, patch));
+    }
+    return None;
+}
+
 fn check_drive_filesystem_type(drive: String) -> FilesystemType{
     if exfat::is_drive_valid(drive.clone()){
         return FilesystemType::Exfat;
