@@ -76,10 +76,9 @@ fn decode_run_list(data: &[u8]) -> Vec<(Option<u64>, u64)> {
 struct NtfsDrive {
     file:                  std::fs::File,
     directories:           Vec<Directory>,
-    volume_label:          String,
+    _volume_label:          String,
     mounted_at:            String,
     bytes_per_sector:      u64,
-    sectors_per_cluster:   u64,
     cluster_size:          u64,
     mft_record_size:       u64,
     mft_runs:              Vec<(Option<u64>, u64)>,
@@ -128,10 +127,9 @@ impl NtfsDrive {
         Ok(NtfsDrive {
             file,
             directories: Vec::new(),
-            volume_label: String::new(),
+            _volume_label: String::new(),
             mounted_at,
             bytes_per_sector,
-            sectors_per_cluster,
             cluster_size,
             mft_record_size,
             mft_runs,

@@ -14,21 +14,15 @@ const EXT4_FT_DIR: u8 = 2;
 struct Ext4Drive {
     file: std::fs::File,
     directories: Vec<Directory>,
-    volume_label: String,
+    _volume_label: String,
     mounted_at: String,
-    bytes_per_sector: u64,
-    sectors_per_cluster: u64,
-    cluster_size: u64,       // block size
-    root_dir_cluster: u64,   // root inode number
     files: Vec<Ext4File>,
     ignored_dirs: Vec<String>,
     // ext4-specific
     inodes_per_group: u32,
     inode_size: u32,
-    blocks_per_group: u32,
     block_size: u64,
     desc_size: u32,          // group descriptor size (32 or 64 bytes)
-    s_desc_size: u32,        // from superblock field
 }
 
 impl Ext4Drive {
@@ -51,7 +45,7 @@ impl Ext4Drive {
         // assert_eq!(magic, 0xEF53, "Not a valid ext4 filesystem (bad magic)");
 
         let block_size = 1024u64 << u32::from_le_bytes([sb[24], sb[25], sb[26], sb[27]]);
-        let blocks_per_group = u32::from_le_bytes([sb[32], sb[33], sb[34], sb[35]]);
+        let _blocks_per_group = u32::from_le_bytes([sb[32], sb[33], sb[34], sb[35]]);
         let inodes_per_group = u32::from_le_bytes([sb[40], sb[41], sb[42], sb[43]]);
         let inode_size = u32::from_le_bytes([sb[88], sb[89], sb[90], sb[91]]);
         let s_desc_size = u32::from_le_bytes([sb[254], sb[255], sb[256], sb[257]]);
@@ -63,25 +57,19 @@ impl Ext4Drive {
         // Volume label: bytes 120..136, UTF-8
         let label_bytes = &sb[120..136];
         let label_end = label_bytes.iter().position(|&b| b == 0).unwrap_or(16);
-        let volume_label = String::from_utf8_lossy(&label_bytes[..label_end]).to_string();
+        let _volume_label = String::from_utf8_lossy(&label_bytes[..label_end]).to_string();
 
         Ok(Ext4Drive {
             file,
             directories: Vec::new(),
-            volume_label,
+            _volume_label,
             mounted_at,
-            bytes_per_sector: 512,
-            sectors_per_cluster: block_size / 512,
-            cluster_size: block_size,
-            root_dir_cluster: EXT4_ROOT_INO as u64,
             files: Vec::new(),
             ignored_dirs,
             inodes_per_group,
             inode_size,
-            blocks_per_group,
             block_size,
             desc_size,
-            s_desc_size,
         })
     }
 
