@@ -658,7 +658,7 @@ impl eframe::App for Anything {
     }
 }
 
-const VERSION: (i32,i32,i32) = (3,1,0);
+const VERSION: (i32,i32,i32) = (3,2,0);
 pub fn start_frontend() -> Result<(), eframe::Error>{
     let mut title = format!("Anything - v{}.{}.{}", VERSION.0, VERSION.1, VERSION.2);
     // Version Check

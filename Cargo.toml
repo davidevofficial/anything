@@ -1,9 +1,9 @@
 [package]
 name = "rs-047-anything"
-version = "3.1.0"
+version = "3.2.0"
 edition = "2024"
 authors = ["Davidevofficial <davidevufficial@gmail.com>"]
-description = "A simple tool to search files"
+description = "A simple GUI tool to search files"
 
 [[bin]]
 name="Anything"
