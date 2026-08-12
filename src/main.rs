@@ -1,6 +1,7 @@
 mod exfat;
 mod fat32;
 mod ext4;
+mod brtfs;
 mod ntfs;
 mod frontend;
 mod backend;
@@ -55,6 +56,7 @@ pub enum FilesystemType{
     Exfat,
     Fat32,
     Ext4,
+    Brtfs,
     Ntfs
 }
 #[derive(Debug, Default, Clone)]
