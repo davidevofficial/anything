@@ -1,6 +1,6 @@
 [package]
 name = "Anything"
-version = "3.3.0"
+version = "3.4.0"
 edition = "2024"
 authors = ["Davidevofficial <davidevufficial@gmail.com>"]
 description = "A simple GUI tool to search files"

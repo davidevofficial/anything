@@ -658,15 +658,14 @@ impl eframe::App for Anything {
     }
 }
 
-const VERSION: (i32,i32,i32) = (3,3,0);
 pub fn start_frontend() -> Result<(), eframe::Error>{
-    let mut title = format!("Anything - v{}.{}.{}", VERSION.0, VERSION.1, VERSION.2);
+    let mut title = format!("Anything - v{}.{}.{}", main::VERSION.0, main::VERSION.1, main::VERSION.2);
     // Version Check
     let version = backend::check_current_verson();
     if version.is_none(){}
     else{
         let v = version.unwrap();
-        if v.0 != VERSION.0 || v.1 != VERSION.1 || v.2 != VERSION.2{
+        if v.0 != main::VERSION.0 || v.1 != main::VERSION.1 || v.2 != main::VERSION.2{
             let update_available_string = format!("(Update v{}.{}.{} is available!)",v.0,v.1,v.2);
             title = format!("{} {}", title, update_available_string);
         }

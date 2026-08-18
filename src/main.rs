@@ -7,6 +7,8 @@ mod frontend;
 mod backend;
 use chrono;
 
+const VERSION: (i32,i32,i32) = (3,4,0);
+
 pub fn size_to_pretty_string(size: u64) -> String{
     if size < 1024{
         return size.to_string() + "B";
