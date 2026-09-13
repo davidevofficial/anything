@@ -151,6 +151,9 @@ impl ExFATDrive{
 
             match bytes[i as usize]{
                 0x00 => {found_eod = true}
+                0x05 => {
+                    // deleted entries
+                }
                 0x83 => {
                     let size = bytes[(i+1) as usize];
                     let mut volume_label = Vec::new();
@@ -252,6 +255,9 @@ impl ExFATDrive{
         while i<directory.size{
             match bytes[i as usize]{
                 0x00 => {found_eod = true}
+                0x05 => {
+                    // deleted entries
+                }
                 0x85 => {
                     let i = i.clone() as usize;
                     let _secondary_count = bytes[i+1];
