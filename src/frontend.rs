@@ -663,7 +663,7 @@ impl eframe::App for Anything {
             if self.time_last_index.is_some(){
                 second_line = "Time it took to index: ".to_owned() + &*self.time_to_index.to_string() + "s, Files found: " + &*self.items.0.len().to_string();
             }
-            let status = format!("{first_line}\n{second_line}");
+            let status = format!("{first_line}  ||  {second_line}");
             ui.label(status);
         });
 
