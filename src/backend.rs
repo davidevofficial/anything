@@ -406,19 +406,22 @@ fn filter_match(item: &main::File, predicate: SearchFilter) -> bool{
 }
 pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<usize>{
     let mut output: Vec<usize> = Vec::new();
-    let predicates = string_to_predicates(searching_for.clone(), &settings.unit_size_preference);
-
+    let mut predicates = string_to_predicates(searching_for.clone(), &settings.unit_size_preference);
+    if settings.ignore_case{
+        for i in 0..predicates.len(){
+            predicates[i].search_string = predicates[i].search_string.to_lowercase();
+        }
+    }
     dbg!(predicates.clone());
     if predicates.len() == 1{
+        let search_filter = predicates[0].clone();
         for j in 0..items.len(){
             match cancel_flag.try_recv(){
                 Ok(1) => {return output;}
                 _=>{}
             }
-            let mut search_filter = predicates[0].clone();
             let mut item = items[j].clone();
             if settings.ignore_case{
-                search_filter.search_string = search_filter.search_string.to_lowercase();
                 if settings.search_full_path{
                     item.name = directories[item.parent as usize].name.clone() + &item.name;
                 }
@@ -432,16 +435,15 @@ pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, setting
         // todo!();
         for i in 0..predicates.len(){
             if i == 0{
+                let search_filter = predicates[0].clone();
                 //start caching
                 for j in 0..items.len(){
                     match cancel_flag.try_recv(){
                         Ok(1) => {return output;}
                         _=>{}
                     }
-                    let mut search_filter = predicates[0].clone();
                     let mut item = items[j].clone();
                     if settings.ignore_case{
-                        search_filter.search_string = search_filter.search_string.to_lowercase();
                         if settings.search_full_path{
                             item.name = directories[item.parent as usize].name.clone() + &item.name;
                         }
@@ -452,6 +454,7 @@ pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, setting
                     }
                 }
             } else{
+                let search_filter = predicates[i].clone();
                 //use cache
                 let mut temp: Vec<usize> = Vec::new();
                 for o in &output{
@@ -459,10 +462,8 @@ pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, setting
                         Ok(1) => {return temp;}
                         _=>{}
                     }
-                    let mut search_filter = predicates[i].clone();
                     let mut item: main::File = items[*o].clone();
                     if settings.ignore_case{
-                        search_filter.search_string = search_filter.search_string.to_lowercase();
                         if settings.search_full_path{
                             item.name = directories[item.parent as usize].name.clone() + &item.name;
                         }
