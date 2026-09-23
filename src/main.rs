@@ -8,7 +8,7 @@ mod backend;
 use chrono;
 
 //              maj min patch
-const VERSION: (i32,i32,i32) = (3,4,0);
+const VERSION: (i32,i32,i32) = (3,4,1);
 
 pub fn size_to_pretty_string(size: u64, unit: &UnitSizePreference) -> String{
     match unit{
