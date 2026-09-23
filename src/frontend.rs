@@ -1,7 +1,7 @@
 use eframe::egui::{self, FontId, TextWrapMode};
 use eframe;
 use std::thread;
-use crate::{self as main, backend, save_cache, save_drives, save_settings};
+use crate::{self as main, backend, save_cache, save_drives, save_settings, UnitSizePreference};
 
 #[derive(Debug, Default)]
 struct Anything{
@@ -211,7 +211,7 @@ impl Anything{
                                     ui.label(&item.name);
                                 });
                                 row.col(|ui| {
-                                    ui.label(main::size_to_pretty_string(item.size));
+                                    ui.label(main::size_to_pretty_string(item.size, &self.settings.unit_size_preference));
                                 });
                                 row.col(|ui| {
                                     ui.label(main::timestamp_to_string(item.create_timestamp));
@@ -284,7 +284,7 @@ impl eframe::App for Anything {
                             for f in &res{
                                 size += &self.items.0[*f].size;
                             }
-                            self.status = format!("{} Files/Directories found. Size of all searched files: {}",res.len(), main::size_to_pretty_string(size));
+                            self.status = format!("{} Files/Directories found. Size of all searched files: {}",res.len(), main::size_to_pretty_string(size, &self.settings.unit_size_preference));
                             self.search_results = res;
                             self.search_thread = None;
                         }
@@ -548,6 +548,16 @@ impl eframe::App for Anything {
                         if slider.drag_stopped() || slider.lost_focus() {
                             ctx.set_pixels_per_point(self.settings.pixels_per_point);
                         }
+                        egui::ComboBox::from_label("Unit Size Preference")
+                        .selected_text(format!("{:?}", self.settings.unit_size_preference))
+                        .show_ui(ui, |ui| {
+                            ui.style_mut().override_font_id = Some(FontId{size:24.0,family:egui::FontFamily::Proportional});
+                            ui.selectable_value(&mut new_settings.unit_size_preference, UnitSizePreference::KiB1024, "IEC standard - KiB (1024 Bytes), MiB, GiB");
+                            ui.selectable_value(&mut new_settings.unit_size_preference, UnitSizePreference::KB1000, "SI standard - KB (1000 Bytes), MB, GB");
+                            ui.selectable_value(&mut new_settings.unit_size_preference, UnitSizePreference::KB1024, "Legacy Standard - KB (1024 Bytes), MB, GB");
+                            ui.selectable_value(&mut new_settings.unit_size_preference, UnitSizePreference::Kb1000, "Speed Standard - Kb (Kilobit = 1000 bits), Mb, Gb");
+
+                        });
 
                         ui.horizontal(|ui|{
                             if ui.add_sized(ui.available_size(), egui::Button::new("Ok")).clicked(){

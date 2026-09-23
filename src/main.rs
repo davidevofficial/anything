@@ -7,23 +7,78 @@ mod frontend;
 mod backend;
 use chrono;
 
+//              maj min patch
 const VERSION: (i32,i32,i32) = (3,4,0);
 
-pub fn size_to_pretty_string(size: u64) -> String{
-    if size < 1024{
-        return size.to_string() + "B";
+pub fn size_to_pretty_string(size: u64, unit: &UnitSizePreference) -> String{
+    match unit{
+        UnitSizePreference::KiB1024 => {
+            if size < 1024{
+                return size.to_string() + "B";
+            }
+            if size < 1048576{
+                return format!("{:.2}KiB", size as f64 / 1024.0);
+            }
+            if size < 1073741824{
+                return format!("{:.2}MiB", size as f64 / 1048576.0);
+            }
+            if size < 1099511627776{
+                return format!("{:.2}GiB", size as f64 / 1073741824.0);
+            }else{
+                return format!("{:.2}TiB", size as f64 / 1099511627776.0);
+            }
+        }
+        UnitSizePreference::KB1000 => {
+            if size < 1_000{
+                return size.to_string() + "B";
+            }
+            if size < 1_000_000{
+                return format!("{:.2}KB", size as f64 / 1000.0);
+            }
+            if size < 1_000_000_000{
+                return format!("{:.2}MB", size as f64 / 1000000.0);
+            }
+            if size < 1_000_000_000_000{
+                return format!("{:.2}GB", size as f64 / 1000000000.0);
+            }else{
+                return format!("{:.2}TB", size as f64 / 1000000000000.0);
+            }
+        }
+        UnitSizePreference::KB1024 => {
+            if size < 1024{
+                return size.to_string() + "B";
+            }
+            if size < 1048576{
+                return format!("{:.2}KB", size as f64 / 1024.0);
+            }
+            if size < 1073741824{
+                return format!("{:.2}MB", size as f64 / 1048576.0);
+            }
+            if size < 1099511627776{
+                return format!("{:.2}GB", size as f64 / 1073741824.0);
+            }else{
+                return format!("{:.2}TB", size as f64 / 1099511627776.0);
+            }
+        }
+        UnitSizePreference::Kb1000 => {
+            let size = size * 8; // Transform to bits
+            if size < 1_000{
+                return size.to_string() + "b";
+            }
+            if size < 1_000_000{
+                return format!("{:.2}Kb", size as f64 / 1000.0);
+            }
+            if size < 1_000_000_000{
+                return format!("{:.2}Mb", size as f64 / 1000000.0);
+            }
+            if size < 1_000_000_000_000{
+                return format!("{:.2}Gb", size as f64 / 1000000000.0);
+            }else{
+                return format!("{:.2}Tb", size as f64 / 1000000000000.0);
+            }
+        }
     }
-    if size < 1048576{
-        return format!("{:.2}KiB", size as f64 / 1024.0);
-    }
-    if size < 1073741824{
-        return format!("{:.2}MiB", size as f64 / 1048576.0);
-    }
-    if size < 1099511627776{
-        return format!("{:.2}GiB", size as f64 / 1073741824.0);
-    }else{
-        return format!("{:.2}TiB", size as f64 / 1099511627776.0);
-    }
+
 }
 pub fn timestamp_to_string(t: i64)-> String{
     // let secs = (timestamp_ms / 1000); commented it out because apparently the information about ms is not stored inside of the timestamp ???
@@ -75,8 +130,30 @@ pub struct Settings{
     light_mode: bool,
     pixels_per_point: f32,
     dynamic: bool,
-    dynamic_factor: u32
+    dynamic_factor: u32,
+    unit_size_preference: UnitSizePreference,
 }
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub enum UnitSizePreference{
+    #[default]
+    KiB1024, // IEC standard
+    KB1000, // SI standard
+    KB1024, // old standard !?
+    Kb1000, // Kilobit = 1000bits (speed standard), Mb = 1 million bits
+}
+impl UnitSizePreference{
+    fn string_to_unit_size(string: &str) -> UnitSizePreference{
+        match string{
+            "KiB1024" => {UnitSizePreference::KiB1024}
+            "KB1000" => {UnitSizePreference::KB1000}
+            "KB1024" => {UnitSizePreference::KB1024}
+            "Kb1000" => {UnitSizePreference::Kb1000}
+            _ => {UnitSizePreference::default()}
+        }
+    }
+}
+
 fn string_to_sort(string: &str) -> Sort{
     match string{
         "DateCreatedAscending" => {Sort::DateCreatedAscending}
@@ -267,6 +344,7 @@ pub fn save_settings(settings: Settings){
     writeln!(writer, "pixels_per_point:{:?}",settings.pixels_per_point).unwrap();
     writeln!(writer, "dynamic:{:?}",settings.dynamic).unwrap();
     writeln!(writer, "dynamic_factor:{:?}",settings.dynamic_factor).unwrap();
+    writeln!(writer, "unit_size_preference:{:?}",settings.unit_size_preference).unwrap();
 
     writer.flush().unwrap();
 }
@@ -309,6 +387,7 @@ pub fn load_settings() -> Settings{
     let mut pixels_per_point = 1.0;
     let mut dynamic = false;
     let mut dynamic_factor = 100;
+    let mut unit_size_preference = UnitSizePreference::default();
     for line in reader.lines(){
         let line = line.unwrap();
         let attr: Vec<&str> = line.split(':').collect();
@@ -323,6 +402,7 @@ pub fn load_settings() -> Settings{
                 }
             }
             "sort_in_use" => {sort_in_use=string_to_sort(attr[1])}
+            "unit_size_preference" => {unit_size_preference = UnitSizePreference::string_to_unit_size(attr[1])}
             "index_on_startup" => {index_on_startup=attr[1]=="true"}
             "index_every_minutes"=>{index_every_minutes=attr[1].parse::<u32>().expect("Line {i} is not a number")}
             "instant_search"=>{instant_search=attr[1]=="true"}
@@ -348,7 +428,8 @@ pub fn load_settings() -> Settings{
         light_mode,
         pixels_per_point,
         dynamic,
-        dynamic_factor
+        dynamic_factor,
+        unit_size_preference
     }
 }
 pub fn save_cache(list_of_files: Vec<File>, list_of_directories: Vec<Directory>){

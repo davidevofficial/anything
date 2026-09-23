@@ -1,5 +1,5 @@
 use std::thread;
-use crate::{self as main, FilesystemType, exfat, ntfs, ext4, fat32, brtfs};
+use crate::{self as main, FilesystemType, UnitSizePreference, brtfs, exfat, ext4, fat32, ntfs};
 
 /// If it can read on github the version.txt then it returns Some( maj, min, patch )
 pub fn check_current_verson() -> Option<(i32,i32,i32)>{
@@ -54,7 +54,6 @@ fn check_drive_filesystem_type(drive: String) -> FilesystemType{
 fn date_to_epoch(s: &str) -> i64{
     use chrono::NaiveDateTime;
     use chrono::NaiveDate;
-    //  dbg!(dt);
     for i in 0..15{
         match i {
             0 => {
@@ -146,46 +145,99 @@ fn wrapper_parse_u64(s: &str) -> u64{
     }else{0}
 }
 
-pub const KB: u64 = 1_000;
-pub const MB: u64 = 1_000_000;
-pub const GB: u64 = 1_000_000_000;
-pub const TB: u64 = 1_000_000_000_000;
+pub const KIB: u64 = 1_024;
+pub const MIB: u64 = 1_024*1_024;
+pub const GIB: u64 = 1_024*1_024*1_024;
+pub const TIB: u64 = 1_024*1_024*1_024*1_024;
 /// From human readable to bytes (u64) lowercase or uppercase doesn't matter
 /// 123b = 123, 123 = 123
 /// 123k = 123.000, 123Kb = 123.000
 /// 7m = 7.000.000, 7Mb = 7.000.000
 /// 7g = 7.000.000.000, 7Gb = 7.000.000.000
 /// 1t = 1.000.000.000.000, 1Tb = 1.000.000.000.000
-fn string_to_size_in_bytes(s: &str) -> u64{
-    let s = s.to_lowercase();
-
-    // Terabyte = 1_000_000_000_000 Bytes
-    if s.ends_with('t'){
-        return wrapper_parse_u64(&s[0..s.len()-1]) * TB;
-    }else if s.ends_with("tb"){
-        return wrapper_parse_u64(&s[0..s.len()-2]) * TB;
+fn string_to_size_in_bytes(s: &str, unit: &UnitSizePreference) -> u64{
+    let r = s.to_lowercase();
+    let tb; let gb; let mb; let kb;
+    match unit{
+        UnitSizePreference::KiB1024 | UnitSizePreference::KB1024 => {tb = TIB; gb = GIB; mb = MIB; kb = KIB;}
+        UnitSizePreference::KB1000 => {tb = 1000*1000*1000*1000; gb = 1000*1000*1000; mb = 1000*1000; kb = 1000;}
+        UnitSizePreference::Kb1000 => {tb = 125*1000*1000*1000; gb = 125*1000*1000; mb = 125*1000; kb = 125;}
     }
-    // Gigabyte = 1_000_000_000 Bytes
-    if s.ends_with('g'){
-        return wrapper_parse_u64(&s[0..s.len()-1]) * GB;
-    }else if s.ends_with("gb"){
-        return wrapper_parse_u64(&s[0..s.len()-2]) * GB;
+    // Auto-Detect
+    if r.ends_with('t'){
+        return wrapper_parse_u64(&s[0..s.len()-1]) * tb;
     }
-    // Megabyte = 1_000_000 Bytes
-    if s.ends_with('m'){
-        return wrapper_parse_u64(&s[0..s.len()-1]) * MB;
-    }else if s.ends_with("mb"){
-        return wrapper_parse_u64(&s[0..s.len()-2]) * MB;
+    if r.ends_with('g'){
+        return wrapper_parse_u64(&s[0..s.len()-1]) * gb;
     }
-    // Kilobytes = 1000 Bytes
-    if s.ends_with('k'){
-        return wrapper_parse_u64(&s[0..s.len()-1]) * KB;
-    }else if s.ends_with("kb"){
-        return wrapper_parse_u64(&s[0..s.len()-2]) * KB;
+    if r.ends_with('m'){
+        return wrapper_parse_u64(&s[0..s.len()-1]) * mb;
     }
-    // Bytes = 1 Byte
-    if s.ends_with('b'){
+    if r.ends_with('k'){
+        return wrapper_parse_u64(&s[0..s.len()-1]) * kb;
+    }
+    // IEC suffixes
+    if r.ends_with("kib"){
+        return wrapper_parse_u64(&s[0..s.len()-3]) * KIB;
+    }
+    if r.ends_with("mib"){
+        return wrapper_parse_u64(&s[0..s.len()-3]) * MIB;
+    }
+    if r.ends_with("gib"){
+        return wrapper_parse_u64(&s[0..s.len()-3]) * GIB;
+    }
+    if r.ends_with("tib"){
+        return wrapper_parse_u64(&s[0..s.len()-3]) * TIB;
+    }
+    // Speed providers suffixes
+    if s.ends_with("Kb"){
+        return wrapper_parse_u64(&s[0..s.len()-2]) * 125;
+    }
+    if s.ends_with("Mb"){
+        return wrapper_parse_u64(&s[0..s.len()-2]) * 125*1000;
+    }
+    if s.ends_with("Gb"){
+        return wrapper_parse_u64(&s[0..s.len()-2]) * 125*1000*1000;
+    }
+    if s.ends_with("Tb"){
+        return wrapper_parse_u64(&s[0..s.len()-2]) * 125*1000*1000*1000;
+    }
+    // SI suffixes (but respects the value that the user gave to the kilobyte)
+    if s.ends_with("KB"){
+        if unit == &UnitSizePreference::KB1024{
+            return wrapper_parse_u64(&s[0..s.len()-2]) * KIB;
+        }
+        return wrapper_parse_u64(&s[0..s.len()-2]) * 1000;
+    }
+    if s.ends_with("MB"){
+        dbg!(&s);
+        if unit == &UnitSizePreference::KB1024{
+            return wrapper_parse_u64(&s[0..s.len()-2]) * MIB;
+        }
+        return wrapper_parse_u64(&s[0..s.len()-2]) * 1000 * 1000;
+    }
+    if s.ends_with("GB"){
+        if unit == &UnitSizePreference::KB1024{
+            return wrapper_parse_u64(&s[0..s.len()-2]) * GIB;
+        }
+        return wrapper_parse_u64(&s[0..s.len()-2]) * 1000 * 1000 * 1000;
+    }
+    if s.ends_with("TB"){
+        if unit == &UnitSizePreference::KB1024{
+            return wrapper_parse_u64(&s[0..s.len()-2]) * TIB;
+        }
+        return wrapper_parse_u64(&s[0..s.len()-2]) * 1000 * 1000 * 1000 * 1000;
+    }
+    // Byte (or bit depending on UnitSizePreference)
+    if r.ends_with('b'){
+        if unit == &UnitSizePreference::Kb1000{
+            return wrapper_parse_u64(&s[0..s.len()-1]) / 8;
+        }
         return wrapper_parse_u64(&s[0..s.len()-1]);
+    }
+    // Returns no suffix
+    if unit == &UnitSizePreference::Kb1000{
+        return wrapper_parse_u64(&s[0..s.len()]) / 8;
     }
     return wrapper_parse_u64(&s[0..s.len()]);
 
@@ -208,13 +260,13 @@ enum FilterType{
 }
 
 impl FilterType{
-    fn from_string(s: &str) -> FilterType{
-        let s = s.to_lowercase();
-        let s = s.trim();
+    fn from_string(s: &str, unit: &UnitSizePreference) -> FilterType{
+        let r = s.to_lowercase();
+        let r = r.trim();
         // Starts or Ends with (*)
-        if s.contains('*'){
+        if r.contains('*'){
             // Divides in two strings, if the first is empty then it means that it is *_ otherwise _*
-            let v: Vec<&str> = s.splitn(2, '*').collect();
+            let v: Vec<&str> = r.splitn(2, '*').collect();
             if v[0].is_empty(){
                 return FilterType::EndsWith(v[1].to_string());
             }else{
@@ -222,17 +274,17 @@ impl FilterType{
             }
         }
         // folder/file
-        if s.contains("folder"){return FilterType::IsFolder}
-        if s.contains("file"){return FilterType::IsFile}
+        if r.contains("folder"){return FilterType::IsFolder}
+        if r.contains("file"){return FilterType::IsFile}
         // other filters
         // bigger than
-        if s.contains('>'){
+        if r.contains('>'){
             let mut parts: Vec<&str> = s.splitn(2, '>').collect();
             parts[0] = parts[0].trim();
             parts[1] = parts[1].trim();
             match parts[0]{
                 "s" | "size" => {
-                    let size = string_to_size_in_bytes(parts[1]);
+                    let size = string_to_size_in_bytes(parts[1], unit);
                     return FilterType::BiggerThan(size);
                 }
                 "c" | "creation" => {
@@ -247,13 +299,13 @@ impl FilterType{
             }
         }
         // smaller than
-        if s.contains('<'){
+        if r.contains('<'){
             let mut parts: Vec<&str> = s.splitn(2, '<').collect();
             parts[0] = parts[0].trim();
             parts[1] = parts[1].trim();
             match parts[0]{
                 "s" | "size" => {
-                    let size = string_to_size_in_bytes(parts[1]);
+                    let size = string_to_size_in_bytes(parts[1], unit);
                     return FilterType::SmallerThan(size);
                 }
                 "c" | "creation" => {
@@ -284,7 +336,7 @@ impl SearchFilter{
     }
 }
 
-fn string_to_predicates(s: String) -> Vec<SearchFilter>{
+fn string_to_predicates(s: String, unit: &UnitSizePreference) -> Vec<SearchFilter>{
     let mut output = Vec::new();
     if !s.contains('\\'){
         let f = SearchFilter::default(s);
@@ -305,7 +357,7 @@ fn string_to_predicates(s: String) -> Vec<SearchFilter>{
                     left_parent_idx = 2;
                 }
                 let parts: Vec<&str> = p[left_parent_idx..].splitn(2,')').collect();
-                let filter = FilterType::from_string(parts[0]);
+                let filter = FilterType::from_string(parts[0], unit);
                 let search_string = parts[1].to_string();
                 output.push(SearchFilter { search_string, negation, filter })
             }else{
@@ -354,7 +406,7 @@ fn filter_match(item: &main::File, predicate: SearchFilter) -> bool{
 }
 pub fn search(items: Vec<main::File>, directories: Vec<main::Directory>, settings: main::Settings, searching_for: String,cancel_flag: std::sync::mpsc::Receiver<u8>)->Vec<usize>{
     let mut output: Vec<usize> = Vec::new();
-    let predicates = string_to_predicates(searching_for.clone());
+    let predicates = string_to_predicates(searching_for.clone(), &settings.unit_size_preference);
 
     dbg!(predicates.clone());
     if predicates.len() == 1{
