@@ -6,6 +6,7 @@ use crate::{self as main, backend, save_cache, save_drives, save_settings, UnitS
 #[derive(Debug, Default)]
 struct Anything{
     items: (Vec<main::File>, Vec<main::Directory>),
+    items_size: u64,
     settings: main::Settings,
     drives: Vec<main::Drive>,
     searching_for: String,
@@ -25,6 +26,7 @@ struct Anything{
     search_thread: Option<std::thread::JoinHandle<Vec<usize>>>,
     search_results: Vec<usize>,
     cancel_search: Option<std::sync::mpsc::Sender<u8>>,
+    time_to_search: (Option<std::time::Instant>, f32),
     times_it_has_indexed: u32,
     time_to_index: f32,
     not_first_frame: bool,
@@ -43,7 +45,6 @@ impl Anything{
             app.settings.columns = vec![200, 950, 100, 150, 150]
         }
         app.items = main::load_cache();
-        app.status = format!("{} indexed files!", app.items.0.len());
         app.temp = app.settings.index_every_minutes.to_string();
         app
     }
@@ -255,7 +256,7 @@ impl eframe::App for Anything {
             if self.cancel_search.is_some(){
                 let _ = self.cancel_search.as_ref().unwrap().send(1);
             }
-            if self.time_last_change.unwrap().elapsed() > std::time::Duration::from_millis(300) && self.time_last_index.unwrap().elapsed() > std::time::Duration::from_millis(3000){
+            if self.time_last_change.unwrap().elapsed() > std::time::Duration::from_millis(300){
                 let (s, r) = std::sync::mpsc::channel::<u8>();
                 self.cancel_search = Some(s);
                 self.time_last_change = None;
@@ -270,7 +271,7 @@ impl eframe::App for Anything {
                 let searching_for = self.searching_for.clone();
                 let cancel_flag = r;
                 self.search_thread = Some(thread::spawn(move || backend::search(slice.to_vec(),slice_2.to_vec(), settings_clone, searching_for, cancel_flag)));
-
+                self.time_to_search.0 = Some(std::time::Instant::now());
                 self.status = String::from("Searching...");
             }
         }
@@ -284,9 +285,13 @@ impl eframe::App for Anything {
                             for f in &res{
                                 size += &self.items.0[*f].size;
                             }
-                            self.status = format!("{} Files/Directories found. Size of all searched files: {}",res.len(), main::size_to_pretty_string(size, &self.settings.unit_size_preference));
+                            self.items_size = size;
                             self.search_results = res;
                             self.search_thread = None;
+                            self.status = String::new();
+                            self.time_to_search.1 = self.time_to_search.0.unwrap().elapsed().as_secs_f32();
+                            self.time_to_search.0 = None;
+
                         }
                         Err(_) => {self.status = String::from("Searching Interrupted or Failed...")}
                     }
@@ -321,24 +326,20 @@ impl eframe::App for Anything {
                                     self.time_to_index = self.time_last_index.unwrap().elapsed().as_secs_f32();
                                     println!("Indexing took: {:.3?}", self.time_to_index);
                                     if errors == 0{
-                                        self.status = format!("Indexing took: {:.3?}, Files found: {}"
-                                            ,self.time_last_index.unwrap().elapsed(),self.items.0.len());
+                                        self.status = String::new();
                                         self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
                                     }else{
                                         let no_permission_or_doesnt_exist = errors % 100;
                                         let bad_magic = (errors - (errors % 100))/100;
                                         match (no_permission_or_doesnt_exist, bad_magic){
                                             (0,a) => {
-                                                self.status = format!("Indexing took: {:.3?}, Files found: {}.\nWARNING: {} selected drives' magic header does not match selected filesystem type \nSearch something to continue"
-                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), a);
+                                                self.status = format!("WARNING: {} selected drives' magic header does not match selected filesystem type", a);
                                             },
                                             (a,0) => {
-                                                self.status = format!("Indexing took: {:.3?}, Files found: {}.\nWARNING: {} drives do not exist or you do not have permission to open them\nSearch something to continue"
-                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(), a);
+                                                self.status = format!("WARNING: {} drives do not exist or you do not have permission to open them", a);
                                             },
                                             (a,b) => {
-                                                self.status = format!("Indexing took: {:.3?}, Files found: {}.\nWARNING: {} drives do not exist or you do not have permission to open them.\nWARNING: {} selected drives' magic header does not match selected filesystem type\nSearch something to continue "
-                                                    ,self.time_last_index.unwrap().elapsed(),self.items.0.len(),a,b);
+                                                self.status = format!("WARNING: {} drives do not exist or you do not have permission to open them.\nWARNING: {} selected drives' magic header does not match selected filesystem type",a,b);
                                             },
                                         }
                                     }
@@ -653,9 +654,20 @@ impl eframe::App for Anything {
         egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
             ui.style_mut().override_font_id = Some(FontId{size:20.0,family:egui::FontFamily::Proportional});
             ui.label(self.status.clone());
+            let mut first_line = String::new();
+            if self.time_last_index.is_some(){
+                first_line = self.search_results.len().to_string() + " search results in: " + &*self.time_to_search.1.to_string() +
+                     "s, Size of all searched files: " + &*main::size_to_pretty_string(self.items_size, &self.settings.unit_size_preference);
+            }
+            let mut second_line = String::new();
+            if self.time_last_index.is_some(){
+                second_line = "Time it took to index: ".to_owned() + &*self.time_to_index.to_string() + "s, Files found: " + &*self.items.0.len().to_string();
+            }
+            let status = format!("{first_line}\n{second_line}");
+            ui.label(status);
         });
 
-        ctx.request_repaint_after_secs(0.1);
+        ctx.request_repaint_after_secs(0.033);
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
