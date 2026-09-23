@@ -234,7 +234,11 @@ Here is a list of all filters:
 
 \(size > x) or \(s > x) -> Size bigger than x
 \(size < x) or \(s < x) -> Size bigger than x
-Where x is either a number (like 1024) or a number followed by a prefix such as: b, k, m, g, t or b, kb, mb, gb, tb (case insensitive)
+Where x is either a number or a number followed by a suffix such as: b, k, Mb, GB, Tib. It follows the unit size preference, for example if you have chosen Kb (Kilobit) in the preferences then searching for a b means searching for size in bit (no prefix would mean bit in this case), If you are using other unit size preferences it finds bytes.
+You can always search by using other suffixes, here is a full list.
+(case insensitive): b, k, m, g, t (<- These are based on unit size preference), kib (kibibyte), mib (mebibyte), gib (gibibyte), tib (tebibyte)
+(case sensitive): Kb (Kilobit), Mb (Megabit), Gb (Gigabit), Tb (Terabit), (These depends on your unit size preference ->) KB (Kilobyte), MB (megabyte), GB (gigabyte), TB (terabyte)
+If unsure use b / k / m / g / t.
 
 \(modified > DATE) or \(m > DATE) -> Modified after DATE
 \(modified < DATE) or \(m < DATE) -> Modified before DATE
@@ -250,7 +254,7 @@ YYYY/mm/dd
 YYYY-mm-dd
 (It follows the Year -> Month -> Date standard so be careful)
 
-\(folder) -> Searches all folders
+\(folder) or \(d) or \(dir) or \(directory) -> Searches all folders
 \(file) -> Searches all files
 \(*.pdf) -> Ends with (in this example ".pdf")
 \(run/media/usb_stick*) -> Starts with (in this example "run/media/usb_stick")
