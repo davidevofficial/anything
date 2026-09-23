@@ -126,6 +126,10 @@ impl ExFATDrive{
     fn cluster_to_byte(self: &Self, cluster: u64)->u64{
         (cluster-2)*self.bytes_per_sector*self.sectors_per_cluster+self.cluster_byte_heap_offset
     }
+    fn byte_to_cluster(self: &Self, byte: u64)->u64{
+        let offsetted_byte = byte + 2 * self.bytes_per_sector * self.sectors_per_cluster - self.cluster_byte_heap_offset;
+        return offsetted_byte / self.sectors_per_cluster / self.bytes_per_sector;
+    }
     fn read_bytes(self: &Self, from: u64, size: u64) -> Vec<u8>{
         let mut b = vec![0_u8; size as usize];
         self.file.read_at(&mut b, from).unwrap();
@@ -141,6 +145,14 @@ impl ExFATDrive{
             next_cluster = self.find_next_in_fat(next_cluster as u32) as u64;
         }
         let mut bytes = Vec::new();
+        dbg!(self.cluster_to_byte(self.root_dir_cluster));
+        dbg!(self.cluster_to_byte(37));
+        dbg!(self.byte_to_cluster(3_494_903_808));
+        dbg!(self.cluster_to_byte(52370));
+        dbg!(self.cluster_to_byte(52368));
+        dbg!(self.cluster_to_byte(52372));
+        dbg!(self.byte_to_cluster(3_493_855_232));
+
         for c in 0..clusters.len(){
             bytes.append(&mut self.read_bytes(self.cluster_to_byte(clusters[c] as u64), self.cluster_size));
         }

@@ -323,7 +323,7 @@ impl eframe::App for Anything {
                                     if errors == 0{
                                         self.status = format!("Indexing took: {:.3?}, Files found: {}"
                                             ,self.time_last_index.unwrap().elapsed(),self.items.0.len());
-                                        self.time_last_change = Some(std::time::Instant::now());
+                                        self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
                                     }else{
                                         let no_permission_or_doesnt_exist = errors % 100;
                                         let bad_magic = (errors - (errors % 100))/100;
@@ -486,7 +486,7 @@ impl eframe::App for Anything {
                     self.time_last_index = Some(std::time::Instant::now());
                 }
                 if ui.small_button("🔎").clicked(){
-                    self.time_last_change = Some(std::time::Instant::now());
+                    self.time_last_change = Some(std::time::Instant::now() - std::time::Duration::from_millis(300));
                 }
                 if ui.add(egui::TextEdit::singleline(&mut self.searching_for)
                     .desired_width(ui.available_width() * 1.0)).changed(){
