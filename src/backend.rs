@@ -274,7 +274,7 @@ impl FilterType{
             }
         }
         // folder/file
-        if r.contains("folder"){return FilterType::IsFolder}
+        if r.contains("folder") | r.contains("d") | r.contains("dir") | r.contains("directory"){return FilterType::IsFolder}
         if r.contains("file"){return FilterType::IsFile}
         // other filters
         // bigger than
