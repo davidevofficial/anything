@@ -293,7 +293,7 @@ Anything requires sudo to index ( you can run the program without sudo to search
 
 In my case sudo is perfectly acceptable (especially because I made the program myself so I know it is not dangerous to run with sudo)
 
-Also the index gets written to "settings/cache.txt" after quitting the program, my "settings/cache.txt" with 3 million files is 175mb so make sure you have free space.
+Also the index gets written to "settings/cache.txt" after quitting the program, my "settings/cache.txt" with 3 million files is 175MiB so make sure you have free space.
 
 # License
 
